@@ -6,6 +6,13 @@ bootstrap, typed Mojom interfaces, service directory, bounded calls, readiness,
 restart budgets and health monitoring. It has no dependency on the GUI or core
 application crates and creates no second async executor.
 
+```toml
+[dependencies]
+lintel-process = "0.1.0"
+# To explicitly enable supervised worker crash reports instead:
+# lintel-process = { version = "0.1.0", features = ["crash-reporting"] }
+```
+
 `ProcessHost::start(HostConfig)` starts one named OS thread that initializes the
 broker runtime and owns the upstream `ProcessSupervisor`. All potentially blocking
 bootstrap, polling, health supervision, graceful stop and child reap operations run
@@ -141,6 +148,18 @@ broker/participant role remain fixed until process exit.
 The upstream source and runtime provenance are available at
 [looading/mojo-ipc](https://github.com/looading/mojo-ipc). Ordinary package tests
 do not load native code and must not be reported as native IPC acceptance.
+
+## Published package tests
+
+The real Echo protocol used for typed connection/call `Send + 'static` contracts
+is checked in under `src/test_protocol` with its original IDL, generator pin and
+Chromium notice. It is compiled only for tests. The package no longer needs a
+private path dev-dependency or an additional test-protocol generation step;
+upstream SDK build prerequisites still apply. Generation configuration and
+build-machine module paths are not part of the checked-in fixture.
+
+First-party code is licensed under MIT; see [LICENSE](LICENSE). The test fixture
+retains its upstream [Chromium notice](src/test_protocol/LICENSE-CHROMIUM).
 
 ## Optional worker crash reports
 

@@ -2,8 +2,11 @@
 name = "lintel-build"
 version = "0.1.0"
 edition = "2024"
-publish = false
 description = "Build and package Lintel desktop applications"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
+readme = "README.md"
+include = ["Cargo.toml", "Cargo.lock", "README.md", "LICENSE", "src/**", "resources/**"]
 
 [lib]
 path = "src/lib.rs"

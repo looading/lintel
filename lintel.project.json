@@ -5,7 +5,9 @@
     "name": "Lintel",
     "version": "0.1.0",
     "repository_root": ".",
-    "summary": "Rust desktop framework with a small public facade, pinned public renderer, optional services and application-owned tools."
+    "summary": "Rust desktop framework with a small public facade, pinned public renderer, optional services and application-owned tools.",
+    "registry_package": "lintel-framework",
+    "repository": "https://github.com/looading/lintel"
   },
   "entry_points": [
     {

@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 
 use crate::svg::Handle;
 
-pub static CLOSE_SVG_BYTES: &[u8] = include_bytes!("../../../assets/svg/close.svg");
+pub static CLOSE_SVG_BYTES: &[u8] = include_bytes!("../assets/svg/close.svg");
 pub static TOAST_SUCCESS_SVG_BYTES: &[u8] = include_bytes!("../assets/success.svg");
 pub static TOAST_INFO_SVG_BYTES: &[u8] = include_bytes!("../assets/info.svg");
 pub static TOAST_WARN_SVG_BYTES: &[u8] = include_bytes!("../assets/warn.svg");

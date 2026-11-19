@@ -1,12 +1,23 @@
 [package]
-name = "lintel"
+name = "lintel-framework"
 version = "0.1.0"
 edition = "2024"
-publish = false
+publish = ["crates-io"]
+description = "A modular Rust desktop framework with native UI, WebView, plugins and supervised services"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
+readme = "README.md"
+keywords = ["desktop", "gui", "webview", "framework", "multiprocess"]
+categories = ["gui"]
+
+[lib]
+name = "lintel"
 
 [workspace.package]
 edition = "2024"
 version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
 
 [workspace]
 resolver = "2"
@@ -123,19 +134,19 @@ name = "agent_tools"
 required-features = ["agent"]
 
 [workspace.dependencies]
-"lintel-core" = { path = "crates/lintel-core" }
-"lintel-lib-env" = { path = "crates/lintel-lib-env" }
-"lintel-plugin-iced-api" = { path = "crates/lintel-plugin-iced-api" }
-"lintel-plugin-iced" = { path = "crates/lintel-plugin-iced" }
-"lintel-lib-jsb-macro" = { path = "crates/lintel-lib-jsb-macro" }
-"lintel-lib-store" = { path = "crates/lintel-lib-store" }
-"lintel-lib-utils" = { path = "crates/lintel-lib-utils" }
-"lintel-lib-crypto" = { path = "crates/lintel-lib-crypto" }
-"lintel-lib-event" = { path = "crates/lintel-lib-event" }
-"lintel-lib-iced" = { path = "crates/lintel-lib-iced" }
-"lintel-lib-config" = { path = "crates/lintel-lib-config" }
-"lintel-iced-widgets" = { path = "crates/lintel-iced-widgets" }
-"lintel-shared-data" = { path = "crates/lintel-shared-data" }
+"lintel-core" = { version = "0.1.0", path = "crates/lintel-core" }
+"lintel-lib-env" = { version = "0.1.0", path = "crates/lintel-lib-env" }
+"lintel-plugin-iced-api" = { version = "0.1.0", path = "crates/lintel-plugin-iced-api" }
+"lintel-plugin-iced" = { version = "0.1.0", path = "crates/lintel-plugin-iced" }
+"lintel-lib-jsb-macro" = { version = "0.1.0", path = "crates/lintel-lib-jsb-macro" }
+"lintel-lib-store" = { version = "0.1.0", path = "crates/lintel-lib-store" }
+"lintel-lib-utils" = { version = "0.1.0", path = "crates/lintel-lib-utils" }
+"lintel-lib-crypto" = { version = "0.1.0", path = "crates/lintel-lib-crypto" }
+"lintel-lib-event" = { version = "0.1.0", path = "crates/lintel-lib-event" }
+"lintel-lib-iced" = { version = "0.1.0", path = "crates/lintel-lib-iced" }
+"lintel-lib-config" = { version = "0.1.0", path = "crates/lintel-lib-config" }
+"lintel-iced-widgets" = { version = "0.1.0", path = "crates/lintel-iced-widgets" }
+"lintel-shared-data" = { version = "0.1.0", path = "crates/lintel-shared-data" }
 
 
 # Shared dependencies

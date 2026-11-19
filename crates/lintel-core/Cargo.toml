@@ -1,4 +1,8 @@
 [package]
+readme = "README.md"
+description = "Application context, plugin lifecycle and owned tasks for Lintel"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-core"
 version.workspace = true
 edition = "2024"

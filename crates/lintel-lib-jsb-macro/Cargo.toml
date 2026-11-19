@@ -1,10 +1,14 @@
 [package]
+readme = "README.md"
+description = "Bridge registration macros for Lintel WebView integrations"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-lib-jsb-macro"
 version.workspace = true
 edition = "2024"
 
 [dependencies]
 anyhow.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["sync"] }
 tracing.workspace = true
 paste = "1"

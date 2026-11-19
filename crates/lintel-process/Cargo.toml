@@ -2,8 +2,12 @@
 name = "lintel-process"
 version = "0.1.0"
 edition = "2024"
-publish = false
+license = "MIT"
+repository = "https://github.com/looading/lintel"
 description = "Lifecycle integration for application-owned Mojo service processes"
+readme = "README.md"
+documentation = "https://docs.rs/lintel-process"
+include = ["Cargo.toml", "README.md", "LICENSE", "src/**"]
 
 [workspace]
 
@@ -15,7 +19,6 @@ tokio = { version = "1", features = ["sync", "time"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt", "macros", "time"] }
-lintel-process-test-protocol = { path = "tests/protocol" }
 
 [lib]
 path = "src/lib.rs"

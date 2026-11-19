@@ -1,5 +1,13 @@
 use std::fmt::Debug;
 use tokio::sync::oneshot;
+
+/// 展开时依赖的定义方路径，不要求调用方直接声明辅助依赖。
+#[doc(hidden)]
+pub mod __private {
+  pub use paste;
+  pub use tracing;
+}
+
 #[must_use]
 pub struct ResponseTx<T> {
   context_id: String,
@@ -39,20 +47,19 @@ macro_rules! define_api_method {
     ($variant:ident, $sender_field:ident, $enum_name:ident,
      [ $( $param_name:ident: $param_type:ty ),* ],
      [ $return_type:ty ]) => {
-        paste::paste! {
+        $crate::__private::paste::paste! {
             pub fn [<$variant:snake>](
                 &self,
                 $( $param_name: $param_type, )*
-                resp_tx: ResponseTx<$return_type>
+                resp_tx: $crate::ResponseTx<$return_type>
             ) {
-                if let Err(err) = self.$sender_field.send(
+                if let Err(_error) = self.$sender_field.send(
                     $enum_name::$variant(
                         $( $param_name, )*
                         resp_tx
                     )
                 ) {
-                    tracing::error!(
-                        ?err,
+                    $crate::__private::tracing::error!(
                         concat!("failed to send ", stringify!($enum_name), "::", stringify!($variant))
                     );
                 }
@@ -64,18 +71,17 @@ macro_rules! define_api_method {
     ($variant:ident, $sender_field:ident, $enum_name:ident,
      [ $( $param_name:ident: $param_type:ty ),* ],
      [ ]) => {
-        paste::paste! {
+        $crate::__private::paste::paste! {
             pub fn [<$variant:snake>](
                 &self,
                 $( $param_name: $param_type, )*
             ) {
-                if let Err(err) = self.$sender_field.send(
+                if let Err(_error) = self.$sender_field.send(
                     $enum_name::$variant(
                         $( $param_name, )*
                     )
                 ) {
-                    tracing::error!(
-                        ?err,
+                    $crate::__private::tracing::error!(
                         concat!("failed to send ", stringify!($enum_name), "::", stringify!($variant))
                     );
                 }
@@ -102,7 +108,7 @@ macro_rules! define_api {
             $(
                 $variant(
                     $( $( $param_type, )* )?
-                    $(ResponseTx<$return_type>)?
+                    $($crate::ResponseTx<$return_type>)?
                 ),
             )*
         }
@@ -118,7 +124,7 @@ macro_rules! define_api {
             }
 
             $(
-                lintel_lib_jsb_macro::define_api_method!{
+                $crate::define_api_method!{
                     $variant,
                     $sender_field,
                     $enum_name,

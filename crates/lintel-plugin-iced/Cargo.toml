@@ -1,4 +1,8 @@
 [package]
+readme = "README.md"
+description = "Owned iced program routing and renderer integration for Lintel"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-plugin-iced"
 version.workspace = true
 edition = "2024"

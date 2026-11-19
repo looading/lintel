@@ -1,4 +1,8 @@
 [package]
+readme = "README.md"
+description = "Public renderer exports and UI diagnostics for Lintel"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-lib-iced"
 version.workspace = true
 edition = "2024"

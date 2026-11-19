@@ -1,8 +1,11 @@
 [package]
+readme = "README.md"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-updater"
 version = "0.1.0"
 edition = "2024"
-publish = false
+publish = ["crates-io"]
 description = "Signed application updates for Lintel desktop apps"
 
 [workspace]

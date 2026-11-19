@@ -6,7 +6,7 @@ use anyhow::{Context, Result, ensure};
 use clap::Args;
 use serde_json::Value;
 
-const CATALOG: &str = include_str!("../../../lintel.project.json");
+const CATALOG: &str = include_str!(concat!(env!("OUT_DIR"), "/lintel.project.json"));
 
 #[derive(Args)]
 pub(crate) struct DescribeArgs {

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "files": [
+    "AGENTS.md",
+    "llms.txt",
+    "lintel.project.json",
+    "templates/agent/AGENTS.md",
+    "templates/agent/llms.txt",
+    "templates/multiprocess/protocol/Cargo.toml",
+    "templates/multiprocess/protocol/build.rs",
+    "templates/multiprocess/protocol/schema/echo.mojom",
+    "templates/multiprocess/protocol/src/lib.rs",
+    "templates/multiprocess/src/bin/lintel-worker.rs",
+    "templates/multiprocess/src/crash_options.rs",
+    "templates/multiprocess/src/main.rs",
+    "templates/native/src/main.rs",
+    "templates/updater/native.rs",
+    "templates/webview/src/main.rs",
+    "templates/webview/ui/index.html",
+    "templates/webview-multiprocess/src/main.rs",
+    "templates/webview-multiprocess/ui/index.html",
+    "templates/windows-webview/WINDOWS-CEF.md",
+    "templates/windows-webview/src/lib.rs",
+    "templates/windows-webview/ui/index.html"
+  ]
+}

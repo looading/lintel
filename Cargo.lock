@@ -3990,41 +3990,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4a5ff6bcca6c4867b1c4fd4ef63e4db7436ef363e0ad7531d1558856bae64f4"
 
 [[package]]
-name = "lintel"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cap-std",
- "cef",
- "directories",
- "global-hotkey",
- "lintel-core",
- "lintel-crash",
- "lintel-desktop",
- "lintel-iced-widgets",
- "lintel-lib-env",
- "lintel-lib-iced",
- "lintel-lib-store",
- "lintel-plugin-iced",
- "lintel-process",
- "lintel-shared-data",
- "lintel-updater",
- "objc2 0.6.3",
- "objc2-app-kit 0.3.2",
- "reqwest",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
- "winit",
-]
-
-[[package]]
 name = "lintel-build"
 version = "0.1.0"
 dependencies = [
@@ -4142,6 +4107,41 @@ dependencies = [
  "objc2-user-notifications 0.3.2",
  "raw-window-handle",
  "windows-sys 0.59.0",
+ "winit",
+]
+
+[[package]]
+name = "lintel-framework"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cap-std",
+ "cef",
+ "directories",
+ "global-hotkey",
+ "lintel-core",
+ "lintel-crash",
+ "lintel-desktop",
+ "lintel-iced-widgets",
+ "lintel-lib-env",
+ "lintel-lib-iced",
+ "lintel-lib-store",
+ "lintel-plugin-iced",
+ "lintel-process",
+ "lintel-shared-data",
+ "lintel-updater",
+ "objc2 0.6.3",
+ "objc2-app-kit 0.3.2",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
  "winit",
 ]
 

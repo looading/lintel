@@ -115,8 +115,8 @@ async fn shutdown_waiters_observe_failure_instead_of_false_success() {
 
 #[test]
 fn generated_echo_directory_and_business_call_futures_are_send_and_static() {
+  use crate::test_protocol::echo::Echo;
   use crate::{CallContext, DirectoryClient, ServiceClient, ipc::Runtime};
-  use lintel_process_test_protocol::echo::Echo;
   use std::{future::Future, time::Duration};
 
   fn require_send_static<T: Send + 'static>(_: T) {}
@@ -154,8 +154,8 @@ fn generated_echo_directory_and_business_call_futures_are_send_and_static() {
 
 #[test]
 fn generated_echo_connected_client_future_and_result_are_send_and_static() {
+  use crate::test_protocol::echo::Echo;
   use crate::{CallContext, ConnectedService, DirectoryClient};
-  use lintel_process_test_protocol::echo::Echo;
   use std::{future::Future, time::Duration};
 
   fn require_send_static<T: Send + 'static>() {}

@@ -303,18 +303,9 @@ name = "lintel-process"
 version = "0.1.0"
 dependencies = [
  "lintel-crash",
- "lintel-process-test-protocol",
  "mojo-ipc",
  "mojo-service",
  "tokio",
-]
-
-[[package]]
-name = "lintel-process-test-protocol"
-version = "0.1.0"
-dependencies = [
- "mojo-ipc",
- "mojom-build",
 ]
 
 [[package]]

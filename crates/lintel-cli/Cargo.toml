@@ -3,8 +3,15 @@ name = "lintel-cli"
 default-run = "lintel"
 version = "0.1.0"
 edition = "2024"
-publish = false
 description = "Command-line tools for Lintel desktop applications"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
+readme = "resources/README.md"
+include = [
+  "Cargo.toml", "Cargo.lock", "build.rs", "source_policy.rs", "src/**",
+  "resources/README.md", "resources/LICENSE", "resources/framework-sources.json",
+  "resources/prepare-release.py", "resources/lintel-framework.tar.gz", "resources/lintel-framework.sha256",
+]
 
 [[bin]]
 name = "lintel"
@@ -22,5 +29,7 @@ serde_json = "1"
 
 [build-dependencies]
 flate2 = "1"
+serde_json = "1"
+sha2 = "0.10"
 tar = "0.4"
 tempfile = "3.24"

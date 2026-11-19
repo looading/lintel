@@ -3,7 +3,7 @@
 Native desktop capabilities for Lintel applications. Enable macOS/Windows native backends with `features = ["native"]`, add `linux` (or its individual features) for GTK-free Linux tray/shortcuts, or select individual capabilities. Default builds keep the API and activation/protocol support available while returning `DesktopError::Unsupported` for native features that were not compiled.
 
 ```toml
-lintel-desktop = { path = "../lintel/crates/lintel-desktop", features = ["native"] }
+lintel-desktop = { version = "0.1.0", features = ["native"] }
 ```
 
 The package is an independent workspace. It does not pull in iced, CEF, or Lintel's internal windowing fork.
@@ -177,3 +177,6 @@ cargo run --manifest-path crates/lintel-desktop/Cargo.toml \
 ```
 
 A plain macOS CLI reports the notification bundle precondition error. Run that executable from an identified signed `.app` with `--require-notifications` to require a successful passive notification-status query. The JSON includes `permission_requests_executed: 0`; no request future is polled. A returned authorization snapshot is the calling process's current execution context, not a claim that all deployed copies have the same grants.
+
+First-party code is licensed under MIT. See [LICENSE](LICENSE); native backend
+dependencies retain their own licenses.

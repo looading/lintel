@@ -3,8 +3,12 @@ name = "lintel-desktop"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-publish = false
+license = "MIT"
+repository = "https://github.com/looading/lintel"
 description = "Main-thread native desktop integrations for Lintel"
+readme = "README.md"
+documentation = "https://docs.rs/lintel-desktop"
+include = ["Cargo.toml", "README.md", "LICENSE", "src/**", "docs/**", "examples/**", "tests/**"]
 
 [workspace]
 resolver = "2"

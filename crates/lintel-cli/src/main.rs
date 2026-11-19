@@ -25,14 +25,18 @@ mod windows;
 use notarization::{BundleNotarization, NotarizationArgs, NotarizeArgs};
 
 const FRAMEWORK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/lintel-framework.tar.gz"));
-const NATIVE_MAIN: &str = include_str!("../../../templates/native/src/main.rs");
-const MULTIPROCESS_MAIN: &str = include_str!("../../../templates/multiprocess/src/main.rs");
-const WEBVIEW_MAIN: &str = include_str!("../../../templates/webview/src/main.rs");
-const WEBVIEW_HTML: &str = include_str!("../../../templates/webview/ui/index.html");
-const WEBVIEW_MULTIPROCESS_MAIN: &str = include_str!("../../../templates/webview-multiprocess/src/main.rs");
-const WEBVIEW_MULTIPROCESS_HTML: &str = include_str!("../../../templates/webview-multiprocess/ui/index.html");
-const WINDOWS_WEBVIEW_LIB: &str = include_str!("../../../templates/windows-webview/src/lib.rs");
-const WINDOWS_WEBVIEW_HTML: &str = include_str!("../../../templates/windows-webview/ui/index.html");
+const NATIVE_MAIN: &str = include_str!(concat!(env!("OUT_DIR"), "/templates/native/src/main.rs"));
+const MULTIPROCESS_MAIN: &str = include_str!(concat!(env!("OUT_DIR"), "/templates/multiprocess/src/main.rs"));
+const WEBVIEW_MAIN: &str = include_str!(concat!(env!("OUT_DIR"), "/templates/webview/src/main.rs"));
+const WEBVIEW_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/templates/webview/ui/index.html"));
+const WEBVIEW_MULTIPROCESS_MAIN: &str =
+  include_str!(concat!(env!("OUT_DIR"), "/templates/webview-multiprocess/src/main.rs"));
+const WEBVIEW_MULTIPROCESS_HTML: &str = include_str!(concat!(
+  env!("OUT_DIR"),
+  "/templates/webview-multiprocess/ui/index.html"
+));
+const WINDOWS_WEBVIEW_LIB: &str = include_str!(concat!(env!("OUT_DIR"), "/templates/windows-webview/src/lib.rs"));
+const WINDOWS_WEBVIEW_HTML: &str = include_str!(concat!(env!("OUT_DIR"), "/templates/windows-webview/ui/index.html"));
 
 #[derive(Parser)]
 #[command(name = "lintel", version, about)]

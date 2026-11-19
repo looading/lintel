@@ -3,8 +3,12 @@ name = "lintel-desktop-platform"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-publish = false
+license = "MIT"
+repository = "https://github.com/looading/lintel"
 description = "Audited native permission and window-menu boundary for lintel-desktop"
+readme = "README.md"
+documentation = "https://docs.rs/lintel-desktop-platform"
+include = ["Cargo.toml", "README.md", "LICENSE", "src/**", "SAFETY.md"]
 
 [workspace]
 resolver = "2"

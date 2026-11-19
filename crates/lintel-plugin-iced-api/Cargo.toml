@@ -1,4 +1,8 @@
 [package]
+readme = "README.md"
+description = "Program and renderer service contracts for Lintel"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-plugin-iced-api"
 version.workspace = true
 edition = "2024"

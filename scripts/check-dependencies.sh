@@ -6,7 +6,7 @@ cd "$root"
 target=${1:-$(rustc -vV | awk '/^host: / { print $2 }')}
 
 resolved_packages() {
-  cargo tree --locked -p lintel --target "$target" --edges normal,build,dev --prefix none "$@" \
+  cargo tree --locked -p lintel-framework --target "$target" --edges normal,build,dev --prefix none "$@" \
     | awk '{ print $1 }' | sort -u
 }
 

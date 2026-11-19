@@ -32,4 +32,6 @@ pub use mojo_service::{
 };
 
 #[cfg(test)]
+mod test_protocol;
+#[cfg(test)]
 mod tests;

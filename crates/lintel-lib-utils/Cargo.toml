@@ -1,4 +1,8 @@
 [package]
+readme = "README.md"
+description = "Common resource, image, time and platform utilities for Lintel"
+repository = "https://github.com/looading/lintel"
+license = "MIT"
 name = "lintel-lib-utils"
 version.workspace = true
 edition = "2024"

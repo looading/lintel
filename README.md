@@ -8,6 +8,17 @@ Lintel 是一个基于 Rust、winit、iced 和 CEF 的桌面应用框架，提�
 
 基础能力的公共接口、插件接入和平台范围见[基础能力说明](docs/capabilities.md)。多窗口使用 `multi_window` 与 `WindowManager`，混合应用可在同一个 CEF 运行时配置多个本地页面。`desktop`、`services`、`sqlite`、`updater`、`crash-reporting` 和 `multiprocess` 都是按需 feature。
 
+## crates.io 包名
+
+框架的注册表包名为 `lintel-framework`，Rust 库和业务代码中的接入名为 `lintel`：
+
+```toml
+[dependencies]
+lintel = { package = "lintel-framework", version = "0.1.0" }
+```
+
+发布状态、补丁依赖与版本顺序见 [发布说明](docs/publishing.md)。独立能力包可以按需使用，不要求应用启用全部功能。
+
 ## 架构概览
 
 ![Lintel 桌面应用框架手绘架构图](docs/assets/lintel-architecture.png)

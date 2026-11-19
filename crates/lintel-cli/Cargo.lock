@@ -955,6 +955,7 @@ dependencies = [
  "lintel-crash",
  "lintel-updater",
  "serde_json",
+ "sha2",
  "tar",
  "tempfile",
 ]

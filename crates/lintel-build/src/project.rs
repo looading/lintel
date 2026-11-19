@@ -368,7 +368,7 @@ mod macos {
          [lib]\nname = \"App\"\ncrate-type = [\"cdylib\"]\n\n\
          [features]\ndefault = []\n# Type checks only: do not build or distribute with api-only.\napi-only = [\"dep:cef\", \"cef/dox\"]\n\n\
          [target.'cfg(target_os = \"windows\")'.dependencies]\n\
-         lintel = {{ path = {dependency}, default-features = false, features = {features} }}\n\
+         lintel = {{ package = \"lintel-framework\", path = {dependency}, default-features = false, features = {features} }}\n\
          cef = {{ version = \"143\", optional = true }}\n\n\
          [workspace]\n{workspace_exclude}"
       )
@@ -376,7 +376,7 @@ mod macos {
       format!(
         "[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2024\"\n{default_run}\n\
          [package.metadata.lintel]\nid = \"dev.example.{name}\"\nname = \"{title}\"\n\n\
-         {service_metadata}{service_features}[dependencies]\nlintel = {{ path = {dependency}, features = {features} }}\n{protocol_dependency}\n\
+         {service_metadata}{service_features}[dependencies]\nlintel = {{ package = \"lintel-framework\", path = {dependency}, features = {features} }}\n{protocol_dependency}\n\
          {service_targets}{build_dependencies}[workspace]\n{workspace_exclude}"
       )
     };
@@ -417,7 +417,7 @@ mod macos {
     if windows {
       fs::write(
         project.join("WINDOWS-CEF.md"),
-        include_str!("../../../templates/windows-webview/WINDOWS-CEF.md"),
+        include_str!("../resources/templates/windows-webview/WINDOWS-CEF.md"),
       )?;
     }
     // Cargo updates the root package entry on first run and retains the public pins.
@@ -454,7 +454,7 @@ mod macos {
     name: &str,
     template: ProjectTemplate,
   ) -> Result<()> {
-    let catalog: serde_json::Value = serde_json::from_str(include_str!("../../../lintel.project.json"))
+    let catalog: serde_json::Value = serde_json::from_str(include_str!("../resources/lintel.project.json"))
       .context("parse the embedded project-generation catalog")?;
     ensure!(
       catalog["schema_version"].as_u64() == Some(1),
@@ -549,8 +549,8 @@ mod macos {
       ("{{RUN_GUIDANCE}}", run_guidance.as_str()),
     ];
     for (path, source) in [
-      ("AGENTS.md", include_str!("../../../templates/agent/AGENTS.md")),
-      ("llms.txt", include_str!("../../../templates/agent/llms.txt")),
+      ("AGENTS.md", include_str!("../resources/templates/agent/AGENTS.md")),
+      ("llms.txt", include_str!("../resources/templates/agent/llms.txt")),
     ] {
       let mut text = source.to_owned();
       for (placeholder, value) in values {
@@ -650,8 +650,8 @@ mod macos {
   mod tests {
     use super::*;
 
-    const WINDOWS_SOURCE: &[u8] = include_bytes!("../../../templates/windows-webview/src/lib.rs");
-    const WINDOWS_HTML: &[u8] = include_bytes!("../../../templates/windows-webview/ui/index.html");
+    const WINDOWS_SOURCE: &[u8] = include_bytes!("../resources/templates/windows-webview/src/lib.rs");
+    const WINDOWS_HTML: &[u8] = include_bytes!("../resources/templates/windows-webview/ui/index.html");
 
     #[test]
     fn checkout_selection_requires_framework_files_instead_of_using_a_build_machine_directory() {
@@ -696,7 +696,7 @@ mod macos {
       )
       .unwrap();
       fs::write(framework.join("profiles/macos-public/Cargo.lock"), "version = 4\n").unwrap();
-      let checkout = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+      let checkout = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources");
       for path in [
         "src/crash_options.rs",
         "src/bin/lintel-worker.rs",
@@ -714,7 +714,7 @@ mod macos {
 
     #[test]
     fn multiprocess_starter_includes_shared_protocol_worker_and_unambiguous_default_binary() {
-      assert_worker_crash_budgets(include_str!("../../../templates/multiprocess/src/main.rs"));
+      assert_worker_crash_budgets(include_str!("../resources/templates/multiprocess/src/main.rs"));
       let root = tempfile::tempdir().unwrap();
       let framework = framework(root.path());
       let project = root.path().join("service-app");
@@ -837,7 +837,7 @@ mod macos {
 
     #[test]
     fn webview_multiprocess_starter_combines_cef_build_setup_with_shared_worker_sources() {
-      assert_worker_crash_budgets(include_str!("../../../templates/webview-multiprocess/src/main.rs"));
+      assert_worker_crash_budgets(include_str!("../resources/templates/webview-multiprocess/src/main.rs"));
       let root = tempfile::tempdir().unwrap();
       let framework = framework(root.path());
       for (label, dependency) in [
@@ -960,7 +960,7 @@ mod macos {
     fn consumer_guides_follow_the_selected_catalog_template_and_preserve_windows_api_only_boundary() {
       let root = tempfile::tempdir().unwrap();
       let framework = framework(root.path());
-      let catalog: serde_json::Value = serde_json::from_str(include_str!("../../../lintel.project.json")).unwrap();
+      let catalog: serde_json::Value = serde_json::from_str(include_str!("../resources/lintel.project.json")).unwrap();
       for (label, template, html) in [
         ("native", ProjectTemplate::Native, None),
         ("multiprocess", ProjectTemplate::Multiprocess, None),
@@ -1074,9 +1074,9 @@ mod macos {
         (".cargo/macos-public-dependencies.toml", "# fixture\n"),
         ("rust-toolchain.toml", "[toolchain]\nchannel = \"nightly-2026-04-01\"\n"),
         ("profiles/macos-public/Cargo.lock", "version = 4\n"),
-        ("AGENTS.md", include_str!("../../../AGENTS.md")),
-        ("llms.txt", include_str!("../../../llms.txt")),
-        ("lintel.project.json", include_str!("../../../lintel.project.json")),
+        ("AGENTS.md", include_str!("../resources/AGENTS.md")),
+        ("llms.txt", include_str!("../resources/llms.txt")),
+        ("lintel.project.json", include_str!("../resources/lintel.project.json")),
       ] {
         let mut header = tar::Header::new_gnu();
         header.set_mode(0o644);
