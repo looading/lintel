@@ -1,0 +1,8 @@
+/target/
+/crates/lintel-build/target/
+/crates/lintel-cli/target/
+/build/
+/third_party/
+/.ai/
+.DS_Store
+/crates/*/target/

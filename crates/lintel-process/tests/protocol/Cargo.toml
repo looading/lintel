@@ -1,0 +1,11 @@
+[package]
+name = "lintel-process-test-protocol"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+mojo-ipc = "=0.3.0"
+
+[build-dependencies]
+mojom-build = "=0.3.0"

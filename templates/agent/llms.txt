@@ -1,0 +1,21 @@
+# {{APP_NAME}}
+
+> Lintel `{{TEMPLATE_NAME}}` application. {{TEMPLATE_SUMMARY}}
+
+- [Application working agreement and verification](AGENTS.md)
+
+## Application files
+
+{{SOURCE_LINKS}}
+
+## Pinned framework
+
+{{FRAMEWORK_REFERENCES}}
+
+## Verification boundary
+
+{{VALIDATION_BOUNDARY}}
+
+The installed CLI's `lintel describe --json` is read-only framework discovery;
+it is not a host check or execution grant. AI Dev Loop is opt-in. Start with the
+application files and select verification for the actual change.

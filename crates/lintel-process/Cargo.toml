@@ -1,0 +1,24 @@
+[package]
+name = "lintel-process"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Lifecycle integration for application-owned Mojo service processes"
+
+[workspace]
+
+[dependencies]
+lintel-crash = { version = "0.1.0", path = "../lintel-crash", default-features = false, optional = true }
+mojo-ipc = "=0.3.0"
+mojo-service = "=0.3.0"
+tokio = { version = "1", features = ["sync", "time"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros", "time"] }
+lintel-process-test-protocol = { path = "tests/protocol" }
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+crash-reporting = ["dep:lintel-crash"]

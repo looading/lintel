@@ -1,0 +1,8 @@
+# Shared by the Lintel macOS launcher and standalone applications.
+[patch.crates-io]
+wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "a6d9d3254e8d5ed7de08634cd9ddd7b63956f7f3" }
+cef = { git = "https://github.com/tauri-apps/cef-rs.git", rev = "348fef293fd48b053b6157cecc3e05c36d71d0ca" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "48116469f15d3bc52b5e56bb516694be8882870d" }
+# Cargo resolves this Windows dependency even when the macOS graph does not use it.
+gpu-allocator = { git = "https://github.com/Traverse-Research/gpu-allocator.git", rev = "3d4466e3331c43d1f85b937b775427b07d7a32fe" }
+

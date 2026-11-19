@@ -1,0 +1,10 @@
+[package]
+name = "lintel-lib-jsb-macro"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+paste = "1"

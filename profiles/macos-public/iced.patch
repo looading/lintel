@@ -1,0 +1,1655 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -237,7 +237,7 @@
+ web-time = "1.1"
+ wgpu = { version = "28.0", default-features = false, features = ["std", "wgsl"] }
+ window_clipboard = { version = "0.5", default-features = false }
+-winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed", default-features = false, features = ["rwh_06"] }
++winit = { git = "https://github.com/iced-rs/winit.git", rev = "48116469f15d3bc52b5e56bb516694be8882870d", default-features = false, features = ["rwh_06"] }
+ 
+ [workspace.lints.rust]
+ rust_2018_idioms = { level = "deny", priority = -1 }
+--- a/core/src/element.rs
++++ b/core/src/element.rs
+@@ -308,7 +308,7 @@
+         viewport: &Rectangle,
+     ) {
+         let mut local_messages = Vec::new();
+-        let mut local_shell = Shell::new(&mut local_messages);
++        let mut local_shell = shell.local(&mut local_messages);
+ 
+         self.widget.update(
+             tree,
+--- a/core/src/event.rs
++++ b/core/src/event.rs
+@@ -27,6 +27,12 @@
+ 
+     /// An input method event
+     InputMethod(input_method::Event),
++
++    /// A wake event, produced by a [`Waker`](crate::shell::Waker).
++    Waken,
++
++    /// A frame was successfully presented to a window surface.
++    Presented,
+ }
+ 
+ /// The status of an [`Event`] after being processed.
+--- a/core/src/keyboard/modifiers.rs
++++ b/core/src/keyboard/modifiers.rs
+@@ -22,6 +22,10 @@
+         /// The "windows" key on Windows, "command" key on Mac, and
+         /// "super" key on Linux.
+         const LOGO = 0b100 << 9;
++        /// The Caps Lock modifier bit.
++        const CAPS_LOCK = 0b100 << 11;
++        /// The Num Lock modifier bit.
++        const NUM_LOCK = 0b100 << 12;
+         // const LLOGO = 0b010 << 9;
+         // const RLOGO = 0b001 << 9;
+         /// No modifiers
+@@ -110,4 +114,14 @@
+             false
+         }
+     }
++
++    /// Returns whether Caps Lock is active.
++    pub fn caps_lock(&self) -> bool {
++        self.contains(Self::CAPS_LOCK)
++    }
++
++    /// Returns whether Num Lock is active.
++    pub fn num_lock(&self) -> bool {
++        self.contains(Self::NUM_LOCK)
++    }
+ }
+--- a/core/src/lib.rs
++++ b/core/src/lib.rs
+@@ -24,6 +24,8 @@
+ pub mod overlay;
+ pub mod padding;
+ pub mod renderer;
++/// Communicate with the iced runtime from widgets.
++pub mod shell;
+ pub mod svg;
+ pub mod text;
+ pub mod theme;
+@@ -44,7 +46,6 @@
+ mod rotation;
+ mod settings;
+ mod shadow;
+-mod shell;
+ mod size;
+ mod transformation;
+ mod vector;
+@@ -74,7 +75,7 @@
+ pub use rotation::Rotation;
+ pub use settings::Settings;
+ pub use shadow::Shadow;
+-pub use shell::Shell;
++pub use shell::{Shell, Waker};
+ pub use size::Size;
+ pub use svg::Svg;
+ pub use text::Text;
+--- a/core/src/mouse/interaction.rs
++++ b/core/src/mouse/interaction.rs
+@@ -30,4 +30,6 @@
+     AllScroll,
+     ZoomIn,
+     ZoomOut,
++    VerticalText,
++    DndAsk,
+ }
+--- a/core/src/overlay/element.rs
++++ b/core/src/overlay/element.rs
+@@ -85,7 +85,7 @@
+         shell: &mut Shell<'_, B>,
+     ) {
+         let mut local_messages = Vec::new();
+-        let mut local_shell = Shell::new(&mut local_messages);
++        let mut local_shell = shell.local(&mut local_messages);
+ 
+         self.content
+             .update(event, layout, cursor, renderer, clipboard, &mut local_shell);
+--- a/core/src/shell.rs
++++ b/core/src/shell.rs
+@@ -1,6 +1,8 @@
+ use crate::InputMethod;
+ use crate::event;
+ use crate::window;
++
++use std::sync::Arc;
+ 
+ /// A connection to the state of a shell.
+ ///
+@@ -11,6 +13,7 @@
+ #[derive(Debug)]
+ pub struct Shell<'a, Message> {
+     messages: &'a mut Vec<Message>,
++    waker: Waker,
+     event_status: event::Status,
+     redraw_request: window::RedrawRequest,
+     input_method: InputMethod,
+@@ -20,9 +23,10 @@
+ 
+ impl<'a, Message> Shell<'a, Message> {
+     /// Creates a new [`Shell`] with the provided buffer of messages.
+-    pub fn new(messages: &'a mut Vec<Message>) -> Self {
++    pub fn new(waker: Waker, messages: &'a mut Vec<Message>) -> Self {
+         Self {
+             messages,
++            waker,
+             event_status: event::Status::Ignored,
+             redraw_request: window::RedrawRequest::Wait,
+             is_layout_invalid: false,
+@@ -31,6 +35,19 @@
+         }
+     }
+ 
++    /// Creates a new [`Shell`] from the current one with the given list of local messages.
++    pub fn local<'b, A>(&self, messages: &'b mut Vec<A>) -> Shell<'b, A>
++    where
++        'a: 'b,
++    {
++        Shell::new(self.waker.clone(), messages)
++    }
++
++    /// Returns the [`Waker`] of the [`Shell`].
++    pub fn waker(&self) -> &Waker {
++        &self.waker
++    }
++
+     /// Returns true if the [`Shell`] contains no published messages
+     #[must_use]
+     pub fn is_empty(&self) -> bool {
+@@ -160,3 +177,35 @@
+         self.input_method.merge(&other.input_method);
+     }
+ }
++
++/// A waker can be used to wake up the iced runtime and, consequently, trigger
++/// wake events concurrently from widget logic.
++#[derive(Clone)]
++pub struct Waker {
++    wake: Arc<dyn Fn() + Send + Sync + 'static>,
++}
++
++impl Waker {
++    /// Creates a new [`Waker`] with the given `wake` function.
++    pub fn new(wake: impl Fn() + Send + Sync + 'static) -> Self {
++        Self {
++            wake: Arc::new(wake),
++        }
++    }
++
++    /// Creates a new [`Waker`] that does nothing.
++    pub fn noop() -> Self {
++        Self::new(|| {})
++    }
++
++    /// Wakes up the iced runtime as soon as possible.
++    pub fn wake(&self) {
++        (self.wake)();
++    }
++}
++
++impl std::fmt::Debug for Waker {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("Waker").finish()
++    }
++}
+--- a/examples/integration/src/main.rs
++++ b/examples/integration/src/main.rs
+@@ -14,6 +14,7 @@
+ use iced_winit::core::window;
+ use iced_winit::core::{Event, Font, Pixels, Size, Theme};
+ use iced_winit::futures;
++use iced_winit::runtime::core::shell;
+ use iced_winit::runtime::user_interface::{self, UserInterface};
+ use iced_winit::winit;
+ 
+@@ -260,6 +261,7 @@
+                             );
+ 
+                             let (state, _) = interface.update(
++                                &shell::Waker::noop(),
+                                 &[Event::Window(
+                                     window::Event::RedrawRequested(Instant::now()),
+                                 )],
+@@ -350,7 +352,14 @@
+ 
+                 let mut messages = Vec::new();
+ 
+-                let _ = interface.update(events, *cursor, renderer, clipboard, &mut messages);
++                let _ = interface.update(
++                    &shell::Waker::noop(),
++                    events,
++                    *cursor,
++                    renderer,
++                    clipboard,
++                    &mut messages,
++                );
+ 
+                 events.clear();
+                 *cache = interface.into_cache();
+--- a/examples/toast/src/main.rs
++++ b/examples/toast/src/main.rs
+@@ -514,7 +514,7 @@
+                 .zip(self.instants.iter_mut())
+             {
+                 let mut local_messages = vec![];
+-                let mut local_shell = Shell::new(&mut local_messages);
++                let mut local_shell = shell.local(&mut local_messages);
+ 
+                 child.as_widget_mut().update(
+                     state,
+--- a/runtime/src/lib.rs
++++ b/runtime/src/lib.rs
+@@ -59,6 +59,14 @@
+     /// Run an image action.
+     Image(image::Action),
+ 
++    /// Produce an event for a window.
++    Event {
++        /// The target window.
++        window: core::window::Id,
++        /// The event to produce.
++        event: core::Event,
++    },
++
+     /// Poll any resources that may have pending computations.
+     Tick,
+ 
+@@ -87,6 +95,7 @@
+             Action::Window(action) => Err(Action::Window(action)),
+             Action::System(action) => Err(Action::System(action)),
+             Action::Image(action) => Err(Action::Image(action)),
++            Action::Event { window, event } => Err(Action::Event { window, event }),
+             Action::Tick => Err(Action::Tick),
+             Action::Reload => Err(Action::Reload),
+             Action::Exit => Err(Action::Exit),
+@@ -113,6 +122,12 @@
+             Action::Window(_) => write!(f, "Action::Window"),
+             Action::System(action) => write!(f, "Action::System({action:?})"),
+             Action::Image(_) => write!(f, "Action::Image"),
++            Action::Event { window, event } => {
++                write!(
++                    f,
++                    "Action::Event {{ window: {window:?}, event: {event:?} }}"
++                )
++            }
+             Action::Tick => write!(f, "Action::Tick"),
+             Action::Reload => write!(f, "Action::Reload"),
+             Action::Exit => write!(f, "Action::Exit"),
+--- a/runtime/src/user_interface.rs
++++ b/runtime/src/user_interface.rs
+@@ -4,6 +4,7 @@
+ use crate::core::mouse;
+ use crate::core::overlay;
+ use crate::core::renderer;
++use crate::core::shell;
+ use crate::core::widget;
+ use crate::core::window;
+ use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+@@ -137,6 +138,7 @@
+     /// # }
+     /// use iced_runtime::core::clipboard;
+     /// use iced_runtime::core::mouse;
++    /// use iced_runtime::core::shell;
+     /// use iced_runtime::core::Size;
+     /// use iced_runtime::user_interface::{self, UserInterface};
+     /// use iced_wgpu::Renderer;
+@@ -147,6 +149,7 @@
+     /// let mut window_size = Size::new(1024.0, 768.0);
+     /// let mut cursor = mouse::Cursor::default();
+     /// let mut clipboard = clipboard::Null;
++    /// let waker = shell::Waker::noop();
+     ///
+     /// // Initialize our event storage
+     /// let mut events = Vec::new();
+@@ -164,6 +167,7 @@
+     ///
+     ///     // Update the user interface
+     ///     let (state, event_statuses) = user_interface.update(
++    ///         &waker,
+     ///         &events,
+     ///         cursor,
+     ///         &mut renderer,
+@@ -181,6 +185,7 @@
+     /// ```
+     pub fn update(
+         &mut self,
++        waker: &shell::Waker,
+         events: &[Event],
+         cursor: mouse::Cursor,
+         renderer: &mut Renderer,
+@@ -213,7 +218,7 @@
+             let mut event_statuses = Vec::new();
+ 
+             for event in events {
+-                let mut shell = Shell::new(messages);
++                let mut shell = Shell::new(waker.clone(), messages);
+ 
+                 overlay.update(
+                     event,
+@@ -311,7 +316,7 @@
+                     return overlay_status;
+                 }
+ 
+-                let mut shell = Shell::new(messages);
++                let mut shell = Shell::new(waker.clone(), messages);
+ 
+                 self.root.as_widget_mut().update(
+                     &mut self.state,
+@@ -425,6 +430,7 @@
+     /// use iced_runtime::core::clipboard;
+     /// use iced_runtime::core::mouse;
+     /// use iced_runtime::core::renderer;
++    /// use iced_runtime::core::shell;
+     /// use iced_runtime::core::{Element, Size};
+     /// use iced_runtime::user_interface::{self, UserInterface};
+     /// use iced_wgpu::{Renderer, Theme};
+@@ -435,6 +441,7 @@
+     /// let mut window_size = Size::new(1024.0, 768.0);
+     /// let mut cursor = mouse::Cursor::default();
+     /// let mut clipboard = clipboard::Null;
++    /// let waker = shell::Waker::noop();
+     /// let mut events = Vec::new();
+     /// let mut messages = Vec::new();
+     /// let mut theme = Theme::default();
+@@ -451,6 +458,7 @@
+     ///
+     ///     // Update the user interface
+     ///     let event_statuses = user_interface.update(
++    ///         &waker,
+     ///         &events,
+     ///         cursor,
+     ///         &mut renderer,
+--- a/runtime/src/window.rs
++++ b/runtime/src/window.rs
+@@ -176,6 +176,9 @@
+ 
+     /// Get the logical dimensions of the monitor containing the window with the given [`Id`].
+     GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
++
++    /// Get the display information for the monitor containing the window.
++    GetScreenInfo(Id, oneshot::Sender<Option<ScreenInfo>>),
+ 
+     /// Set whether the system can automatically organize windows into tabs.
+     ///
+@@ -480,6 +483,26 @@
+     task::oneshot(move |channel| crate::Action::Window(Action::GetMonitorSize(id, channel)))
+ }
+ 
++/// Display information for the monitor containing a window.
++#[derive(Debug, Clone)]
++pub struct ScreenInfo {
++    /// The logical dimensions of the monitor.
++    pub size: Size,
++    /// The bit depth of the monitor's reported video mode.
++    pub depth: Option<u16>,
++    /// The device scale factor of the monitor.
++    pub device_scale_factor: f64,
++    /// The reported refresh rate in whole hertz.
++    pub refresh_rate: Option<u32>,
++}
++
++/// Gets display information for the monitor containing the window with the given [`Id`].
++///
++/// Returns [`None`] when the window or its current monitor is unavailable.
++pub fn get_screen_info(id: Id) -> Task<Option<ScreenInfo>> {
++    task::oneshot(move |channel| crate::Action::Window(Action::GetScreenInfo(id, channel)))
++}
++
+ /// Sets whether the system can automatically organize windows into tabs.
+ ///
+ /// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
+--- a/test/src/emulator.rs
++++ b/test/src/emulator.rs
+@@ -2,6 +2,7 @@
+ use crate::core;
+ use crate::core::mouse;
+ use crate::core::renderer;
++use crate::core::shell;
+ use crate::core::time::Instant;
+ use crate::core::widget;
+ use crate::core::window;
+@@ -260,9 +261,7 @@
+                     // TODO
+                     dbg!(action);
+                 }
+-                iced_runtime::Action::Tick => {
+-                    // TODO
+-                }
++                iced_runtime::Action::Event { .. } | iced_runtime::Action::Tick => {}
+                 runtime::Action::Exit => {
+                     // TODO
+                 }
+@@ -323,6 +322,7 @@
+                 }
+ 
+                 let (_state, _status) = user_interface.update(
++                    &shell::Waker::noop(),
+                     &events,
+                     self.cursor,
+                     &mut self.renderer,
+@@ -451,6 +451,7 @@
+ 
+         // TODO: Nested redraws!
+         let _ = user_interface.update(
++            &shell::Waker::noop(),
+             &[core::Event::Window(window::Event::RedrawRequested(
+                 Instant::now(),
+             ))],
+--- a/test/src/simulator.rs
++++ b/test/src/simulator.rs
+@@ -4,6 +4,7 @@
+ use crate::core::event;
+ use crate::core::keyboard;
+ use crate::core::mouse;
++use crate::core::shell;
+ use crate::core::theme;
+ use crate::core::time;
+ use crate::core::widget;
+@@ -173,6 +174,7 @@
+         let events: Vec<Event> = events.into_iter().collect();
+ 
+         let (_state, statuses) = self.raw.update(
++            &shell::Waker::noop(),
+             &events,
+             self.cursor,
+             &mut self.renderer,
+@@ -188,6 +190,7 @@
+         let base = theme.base();
+ 
+         let _ = self.raw.update(
++            &shell::Waker::noop(),
+             &[Event::Window(window::Event::RedrawRequested(
+                 time::Instant::now(),
+             ))],
+--- a/wgpu/src/window/compositor.rs
++++ b/wgpu/src/window/compositor.rs
+@@ -7,6 +7,29 @@
+ use crate::settings::{self, Settings};
+ use crate::{Engine, Renderer};
+ 
++#[cfg(not(target_arch = "wasm32"))]
++use std::sync::{Arc, Mutex, Weak};
++
++/// GPU handles from the current native compositor, for external frame producers.
++#[cfg(not(target_arch = "wasm32"))]
++pub struct GpuContext {
++    /// The device used by iced's renderer.
++    pub device: wgpu::Device,
++    /// The queue belonging to the device.
++    pub queue: wgpu::Queue,
++    /// The selected adapter's identity and backend.
++    pub adapter: wgpu::AdapterInfo,
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++static GPU_CONTEXT: Mutex<Weak<GpuContext>> = Mutex::new(Weak::new());
++
++/// Returns a snapshot of the current native compositor's GPU handles.
++#[cfg(not(target_arch = "wasm32"))]
++pub fn gpu_context() -> Option<Arc<GpuContext>> {
++    GPU_CONTEXT.lock().ok()?.upgrade()
++}
++
+ /// A window graphics backend for iced powered by `wgpu`.
+ pub struct Compositor {
+     instance: wgpu::Instance,
+@@ -15,6 +38,8 @@
+     alpha_mode: wgpu::CompositeAlphaMode,
+     engine: Engine,
+     settings: Settings,
++    #[cfg(not(target_arch = "wasm32"))]
++    _gpu_context: Arc<GpuContext>,
+ }
+ 
+ /// A compositor error.
+@@ -172,6 +197,12 @@
+ 
+             match result {
+                 Ok((device, queue)) => {
++                    #[cfg(not(target_arch = "wasm32"))]
++                    let gpu_context = Arc::new(GpuContext {
++                        device: device.clone(),
++                        queue: queue.clone(),
++                        adapter: adapter.get_info(),
++                    });
+                     let engine = Engine::new(
+                         &adapter,
+                         device,
+@@ -180,6 +211,10 @@
+                         settings.antialiasing,
+                         shell,
+                     );
++                    #[cfg(not(target_arch = "wasm32"))]
++                    if let Ok(mut current) = GPU_CONTEXT.lock() {
++                        *current = Arc::downgrade(&gpu_context);
++                    }
+ 
+                     return Ok(Compositor {
+                         instance,
+@@ -188,6 +223,8 @@
+                         alpha_mode,
+                         engine,
+                         settings,
++                        #[cfg(not(target_arch = "wasm32"))]
++                        _gpu_context: gpu_context,
+                     });
+                 }
+                 Err(error) => {
+--- a/widget/src/combo_box.rs
++++ b/widget/src/combo_box.rs
+@@ -557,7 +557,7 @@
+ 
+         // Create a new list of local messages
+         let mut local_messages = Vec::new();
+-        let mut local_shell = Shell::new(&mut local_messages);
++        let mut local_shell = shell.local(&mut local_messages);
+ 
+         // Provide it to the widget
+         self.text_input.update(
+@@ -713,7 +713,7 @@
+ 
+                 // Unfocus the input
+                 let mut local_messages = Vec::new();
+-                let mut local_shell = Shell::new(&mut local_messages);
++                let mut local_shell = shell.local(&mut local_messages);
+                 self.text_input.update(
+                     &mut tree.children[0],
+                     &Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+--- a/widget/src/lazy/component.rs
++++ b/widget/src/lazy/component.rs
+@@ -309,7 +309,7 @@
+         viewport: &Rectangle,
+     ) {
+         let mut local_messages = Vec::new();
+-        let mut local_shell = Shell::new(&mut local_messages);
++        let mut local_shell = shell.local(&mut local_messages);
+ 
+         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
+         self.with_element_mut(|element| {
+@@ -586,7 +586,7 @@
+         shell: &mut Shell<'_, Message>,
+     ) {
+         let mut local_messages = Vec::new();
+-        let mut local_shell = Shell::new(&mut local_messages);
++        let mut local_shell = shell.local(&mut local_messages);
+ 
+         let _ = self.with_overlay_mut_maybe(|overlay| {
+             overlay.update(event, layout, cursor, renderer, clipboard, &mut local_shell);
+--- a/winit/src/conversion.rs
++++ b/winit/src/conversion.rs
+@@ -458,6 +458,8 @@
+         Interaction::Cell => winit::window::CursorIcon::Cell,
+         Interaction::Crosshair => winit::window::CursorIcon::Crosshair,
+         Interaction::Text => winit::window::CursorIcon::Text,
++        Interaction::VerticalText => winit::window::CursorIcon::VerticalText,
++        Interaction::DndAsk => winit::window::CursorIcon::DndAsk,
+         Interaction::Alias => winit::window::CursorIcon::Alias,
+         Interaction::Copy => winit::window::CursorIcon::Copy,
+         Interaction::Move => winit::window::CursorIcon::Move,
+@@ -546,7 +548,7 @@
+     use winit::keyboard::NamedKey;
+ 
+     match key {
+-        winit::keyboard::Key::Character(c) => keyboard::Key::Character(c),
++        winit::keyboard::Key::Character(c) => keyboard::Key::Character(c.as_str().into()),
+         winit::keyboard::Key::Named(named_key) => keyboard::Key::Named(match named_key {
+             NamedKey::Alt => Named::Alt,
+             NamedKey::AltGraph => Named::AltGraph,
+--- a/winit/src/lib.rs
++++ b/winit/src/lib.rs
+@@ -72,18 +72,52 @@
+ {
+     use winit::event_loop::EventLoop;
+ 
++    let event_loop = EventLoop::with_user_event()
++        .build()
++        .expect("Create event loop");
++
++    let runner = create_runner(
++        program,
++        event_loop.create_proxy(),
++        event_loop.owned_display_handle(),
++    )?;
++
++    #[cfg(not(target_arch = "wasm32"))]
++    {
++        let mut runner = runner;
++        let _ = event_loop.run_app(&mut runner);
++
++        runner.error.map(Err).unwrap_or(Ok(()))
++    }
++
++    #[cfg(target_arch = "wasm32")]
++    {
++        use winit::platform::web::EventLoopExtWebSys;
++        let _ = event_loop.spawn_app(runner);
++
++        Ok(())
++    }
++}
++
++/// Creates the standard iced runner for an event loop owned by the caller.
++///
++/// Forward the event loop's application-handler callbacks to the returned runner.
++pub fn create_runner<P>(
++    program: P,
++    event_loop_proxy: winit::event_loop::EventLoopProxy<Action<P::Message>>,
++    display_handle: winit::event_loop::OwnedDisplayHandle,
++) -> Result<Runner<P::Message>, Error>
++where
++    P: Program + 'static,
++    P::Theme: theme::Base,
++{
+     let boot_span = debug::boot();
+     let settings = program.settings();
+     let window_settings = program.window();
+ 
+-    let event_loop = EventLoop::with_user_event()
+-        .build()
+-        .expect("Create event loop");
+-
+     let graphics_settings = settings.clone().into();
+-    let display_handle = event_loop.owned_display_handle();
+-
+-    let (proxy, worker) = Proxy::new(event_loop.create_proxy());
++
++    let (proxy, worker) = Proxy::new(event_loop_proxy);
+ 
+     #[cfg(feature = "debug")]
+     {
+@@ -141,19 +175,6 @@
+ 
+     let context = task::Context::from_waker(task::noop_waker_ref());
+ 
+-    struct Runner<Message: 'static, F> {
+-        instance: std::pin::Pin<Box<F>>,
+-        context: task::Context<'static>,
+-        id: Option<String>,
+-        sender: mpsc::UnboundedSender<Event<Action<Message>>>,
+-        receiver: mpsc::UnboundedReceiver<Control>,
+-        error: Option<Error>,
+-        system_theme: Option<oneshot::Sender<theme::Mode>>,
+-
+-        #[cfg(target_arch = "wasm32")]
+-        canvas: Option<web_sys::HtmlCanvasElement>,
+-    }
+-
+     let runner = Runner {
+         instance,
+         context,
+@@ -169,270 +190,262 @@
+ 
+     boot_span.finish();
+ 
+-    impl<Message, F> winit::application::ApplicationHandler<Action<Message>> for Runner<Message, F>
+-    where
+-        F: Future<Output = ()>,
+-    {
+-        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+-            if let Some(sender) = self.system_theme.take() {
+-                let _ = sender.send(
+-                    event_loop
+-                        .system_theme()
+-                        .map(conversion::theme_mode)
+-                        .unwrap_or_default(),
+-                );
+-            }
+-        }
+-
+-        fn new_events(
+-            &mut self,
+-            event_loop: &winit::event_loop::ActiveEventLoop,
+-            cause: winit::event::StartCause,
+-        ) {
+-            self.process_event(
+-                event_loop,
+-                Event::EventLoopAwakened(winit::event::Event::NewEvents(cause)),
+-            );
+-        }
+-
+-        fn window_event(
+-            &mut self,
+-            event_loop: &winit::event_loop::ActiveEventLoop,
+-            window_id: winit::window::WindowId,
+-            event: winit::event::WindowEvent,
+-        ) {
+-            #[cfg(target_os = "windows")]
+-            let is_move_or_resize = matches!(
+-                event,
+-                winit::event::WindowEvent::Resized(_) | winit::event::WindowEvent::Moved(_)
+-            );
+-
+-            self.process_event(
+-                event_loop,
+-                Event::EventLoopAwakened(winit::event::Event::WindowEvent { window_id, event }),
+-            );
+-
+-            // TODO: Remove when unnecessary
+-            // On Windows, we emulate an `AboutToWait` event after every `Resized` event
+-            // since the event loop does not resume during resize interaction.
+-            // More details: https://github.com/rust-windowing/winit/issues/3272
+-            #[cfg(target_os = "windows")]
+-            {
+-                if is_move_or_resize {
+-                    self.process_event(
+-                        event_loop,
+-                        Event::EventLoopAwakened(winit::event::Event::AboutToWait),
+-                    );
+-                }
+-            }
+-        }
+-
+-        fn user_event(
+-            &mut self,
+-            event_loop: &winit::event_loop::ActiveEventLoop,
+-            action: Action<Message>,
+-        ) {
+-            self.process_event(
+-                event_loop,
+-                Event::EventLoopAwakened(winit::event::Event::UserEvent(action)),
+-            );
+-        }
+-
+-        fn received_url(&mut self, event_loop: &winit::event_loop::ActiveEventLoop, url: String) {
+-            self.process_event(
+-                event_loop,
+-                Event::EventLoopAwakened(winit::event::Event::PlatformSpecific(
+-                    winit::event::PlatformSpecific::MacOS(winit::event::MacOS::ReceivedUrl(url)),
+-                )),
+-            );
+-        }
+-
+-        fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+-            self.process_event(
+-                event_loop,
+-                Event::EventLoopAwakened(winit::event::Event::AboutToWait),
++    Ok(runner)
++}
++
++/// The application handler for a running iced program.
++pub struct Runner<Message: 'static> {
++    instance: std::pin::Pin<Box<dyn Future<Output = ()>>>,
++    context: task::Context<'static>,
++    id: Option<String>,
++    sender: mpsc::UnboundedSender<Event<Action<Message>>>,
++    receiver: mpsc::UnboundedReceiver<Control>,
++    error: Option<Error>,
++    system_theme: Option<oneshot::Sender<theme::Mode>>,
++
++    #[cfg(target_arch = "wasm32")]
++    canvas: Option<web_sys::HtmlCanvasElement>,
++}
++
++impl<Message> winit::application::ApplicationHandler<Action<Message>> for Runner<Message> {
++    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
++        if let Some(sender) = self.system_theme.take() {
++            let _ = sender.send(
++                event_loop
++                    .system_theme()
++                    .map(conversion::theme_mode)
++                    .unwrap_or_default(),
+             );
+         }
+     }
+ 
+-    impl<Message, F> Runner<Message, F>
+-    where
+-        F: Future<Output = ()>,
+-    {
+-        fn process_event(
+-            &mut self,
+-            event_loop: &winit::event_loop::ActiveEventLoop,
+-            event: Event<Action<Message>>,
+-        ) {
+-            if event_loop.exiting() {
+-                return;
+-            }
+-
+-            self.sender.start_send(event).expect("Send event");
+-
+-            loop {
+-                let poll = self.instance.as_mut().poll(&mut self.context);
+-
+-                match poll {
+-                    task::Poll::Pending => match self.receiver.try_next() {
+-                        Ok(Some(control)) => match control {
+-                            Control::ChangeFlow(flow) => {
+-                                use winit::event_loop::ControlFlow;
+-
+-                                match (event_loop.control_flow(), flow) {
+-                                    (
+-                                        ControlFlow::WaitUntil(current),
+-                                        ControlFlow::WaitUntil(new),
+-                                    ) if current < new => {}
+-                                    (ControlFlow::WaitUntil(target), ControlFlow::Wait)
+-                                        if target > Instant::now() => {}
+-                                    _ => {
+-                                        event_loop.set_control_flow(flow);
+-                                    }
++    fn new_events(
++        &mut self,
++        event_loop: &winit::event_loop::ActiveEventLoop,
++        cause: winit::event::StartCause,
++    ) {
++        self.process_event(
++            event_loop,
++            Event::EventLoopAwakened(winit::event::Event::NewEvents(cause)),
++        );
++    }
++
++    fn window_event(
++        &mut self,
++        event_loop: &winit::event_loop::ActiveEventLoop,
++        window_id: winit::window::WindowId,
++        event: winit::event::WindowEvent,
++    ) {
++        #[cfg(target_os = "windows")]
++        let is_move_or_resize = matches!(
++            event,
++            winit::event::WindowEvent::Resized(_) | winit::event::WindowEvent::Moved(_)
++        );
++
++        self.process_event(
++            event_loop,
++            Event::EventLoopAwakened(winit::event::Event::WindowEvent { window_id, event }),
++        );
++
++        // TODO: Remove when unnecessary
++        // On Windows, we emulate an `AboutToWait` event after every `Resized` event
++        // since the event loop does not resume during resize interaction.
++        // More details: https://github.com/rust-windowing/winit/issues/3272
++        #[cfg(target_os = "windows")]
++        {
++            if is_move_or_resize {
++                self.process_event(
++                    event_loop,
++                    Event::EventLoopAwakened(winit::event::Event::AboutToWait),
++                );
++            }
++        }
++    }
++
++    fn user_event(
++        &mut self,
++        event_loop: &winit::event_loop::ActiveEventLoop,
++        action: Action<Message>,
++    ) {
++        self.process_event(
++            event_loop,
++            Event::EventLoopAwakened(winit::event::Event::UserEvent(action)),
++        );
++    }
++
++    fn received_url(&mut self, event_loop: &winit::event_loop::ActiveEventLoop, url: String) {
++        self.process_event(
++            event_loop,
++            Event::EventLoopAwakened(winit::event::Event::PlatformSpecific(
++                winit::event::PlatformSpecific::MacOS(winit::event::MacOS::ReceivedUrl(url)),
++            )),
++        );
++    }
++
++    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
++        self.process_event(
++            event_loop,
++            Event::EventLoopAwakened(winit::event::Event::AboutToWait),
++        );
++    }
++}
++
++impl<Message> Runner<Message> {
++    fn process_event(
++        &mut self,
++        event_loop: &winit::event_loop::ActiveEventLoop,
++        event: Event<Action<Message>>,
++    ) {
++        if event_loop.exiting() {
++            return;
++        }
++
++        self.sender.start_send(event).expect("Send event");
++
++        loop {
++            let poll = self.instance.as_mut().poll(&mut self.context);
++
++            match poll {
++                task::Poll::Pending => match self.receiver.try_next() {
++                    Ok(Some(control)) => match control {
++                        Control::ChangeFlow(flow) => {
++                            use winit::event_loop::ControlFlow;
++
++                            match (event_loop.control_flow(), flow) {
++                                (ControlFlow::WaitUntil(current), ControlFlow::WaitUntil(new))
++                                    if current < new => {}
++                                (ControlFlow::WaitUntil(target), ControlFlow::Wait)
++                                    if target > Instant::now() => {}
++                                _ => {
++                                    event_loop.set_control_flow(flow);
+                                 }
+                             }
+-                            Control::CreateWindow {
+-                                id,
++                        }
++                        Control::CreateWindow {
++                            id,
++                            settings,
++                            title,
++                            scale_factor,
++                            monitor,
++                            on_open,
++                        } => {
++                            let exit_on_close_request = settings.exit_on_close_request;
++
++                            let visible = settings.visible;
++
++                            #[cfg(target_arch = "wasm32")]
++                            let target = settings.platform_specific.target.clone();
++
++                            let window_attributes = conversion::window_attributes(
+                                 settings,
+-                                title,
++                                &title,
+                                 scale_factor,
+-                                monitor,
+-                                on_open,
+-                            } => {
+-                                let exit_on_close_request = settings.exit_on_close_request;
+-
+-                                let visible = settings.visible;
+-
+-                                #[cfg(target_arch = "wasm32")]
+-                                let target = settings.platform_specific.target.clone();
+-
+-                                let window_attributes = conversion::window_attributes(
+-                                    settings,
+-                                    &title,
+-                                    scale_factor,
+-                                    monitor.or(event_loop.primary_monitor()),
+-                                    self.id.clone(),
+-                                )
+-                                .with_visible(false);
+-
+-                                #[cfg(target_arch = "wasm32")]
+-                                let window_attributes = {
+-                                    use winit::platform::web::WindowAttributesExtWebSys;
+-                                    window_attributes.with_canvas(self.canvas.take())
++                                monitor.or(event_loop.primary_monitor()),
++                                self.id.clone(),
++                            )
++                            .with_visible(false);
++
++                            #[cfg(target_arch = "wasm32")]
++                            let window_attributes = {
++                                use winit::platform::web::WindowAttributesExtWebSys;
++                                window_attributes.with_canvas(self.canvas.take())
++                            };
++
++                            log::info!(
++                                "Window attributes for id `{id:#?}`: {window_attributes:#?}"
++                            );
++
++                            // On macOS, the `position` in `WindowAttributes` represents the "inner"
++                            // position of the window; while on other platforms it's the "outer" position.
++                            // We fix the inconsistency on macOS by positioning the window after creation.
++                            #[cfg(target_os = "macos")]
++                            let mut window_attributes = window_attributes;
++
++                            #[cfg(target_os = "macos")]
++                            let position = window_attributes.position.take();
++
++                            let window = event_loop
++                                .create_window(window_attributes)
++                                .expect("Create window");
++
++                            #[cfg(target_os = "macos")]
++                            if let Some(position) = position {
++                                window.set_outer_position(position);
++                            }
++
++                            #[cfg(target_arch = "wasm32")]
++                            {
++                                use winit::platform::web::WindowExtWebSys;
++
++                                let canvas = window.canvas().expect("Get window canvas");
++
++                                let _ = canvas.set_attribute(
++                                    "style",
++                                    "display: block; width: 100%; height: 100%",
++                                );
++
++                                let window = web_sys::window().unwrap();
++                                let document = window.document().unwrap();
++                                let body = document.body().unwrap();
++
++                                let target = target.and_then(|target| {
++                                    body.query_selector(&format!("#{target}"))
++                                        .ok()
++                                        .unwrap_or(None)
++                                });
++
++                                match target {
++                                    Some(node) => {
++                                        let _ = node
++                                            .replace_with_with_node_1(&canvas)
++                                            .expect(&format!("Could not replace #{}", node.id()));
++                                    }
++                                    None => {
++                                        let _ = body
++                                            .append_child(&canvas)
++                                            .expect("Append canvas to HTML body");
++                                    }
+                                 };
+-
+-                                log::info!(
+-                                    "Window attributes for id `{id:#?}`: {window_attributes:#?}"
+-                                );
+-
+-                                // On macOS, the `position` in `WindowAttributes` represents the "inner"
+-                                // position of the window; while on other platforms it's the "outer" position.
+-                                // We fix the inconsistency on macOS by positioning the window after creation.
+-                                #[cfg(target_os = "macos")]
+-                                let mut window_attributes = window_attributes;
+-
+-                                #[cfg(target_os = "macos")]
+-                                let position = window_attributes.position.take();
+-
+-                                let window = event_loop
+-                                    .create_window(window_attributes)
+-                                    .expect("Create window");
+-
+-                                #[cfg(target_os = "macos")]
+-                                if let Some(position) = position {
+-                                    window.set_outer_position(position);
+-                                }
+-
+-                                #[cfg(target_arch = "wasm32")]
+-                                {
+-                                    use winit::platform::web::WindowExtWebSys;
+-
+-                                    let canvas = window.canvas().expect("Get window canvas");
+-
+-                                    let _ = canvas.set_attribute(
+-                                        "style",
+-                                        "display: block; width: 100%; height: 100%",
+-                                    );
+-
+-                                    let window = web_sys::window().unwrap();
+-                                    let document = window.document().unwrap();
+-                                    let body = document.body().unwrap();
+-
+-                                    let target = target.and_then(|target| {
+-                                        body.query_selector(&format!("#{target}"))
+-                                            .ok()
+-                                            .unwrap_or(None)
+-                                    });
+-
+-                                    match target {
+-                                        Some(node) => {
+-                                            let _ = node.replace_with_with_node_1(&canvas).expect(
+-                                                &format!("Could not replace #{}", node.id()),
+-                                            );
+-                                        }
+-                                        None => {
+-                                            let _ = body
+-                                                .append_child(&canvas)
+-                                                .expect("Append canvas to HTML body");
+-                                        }
+-                                    };
+-                                }
+-
+-                                self.process_event(
+-                                    event_loop,
+-                                    Event::WindowCreated {
+-                                        id,
+-                                        window: Arc::new(window),
+-                                        exit_on_close_request,
+-                                        make_visible: visible,
+-                                        on_open,
+-                                    },
+-                                );
+                             }
+-                            Control::Exit => {
+-                                self.process_event(event_loop, Event::Exit);
+-                                event_loop.exit();
+-                                break;
++
++                            self.process_event(
++                                event_loop,
++                                Event::WindowCreated {
++                                    id,
++                                    window: Arc::new(window),
++                                    exit_on_close_request,
++                                    make_visible: visible,
++                                    on_open,
++                                },
++                            );
++                        }
++                        Control::Exit => {
++                            self.process_event(event_loop, Event::Exit);
++                            event_loop.exit();
++                            break;
++                        }
++                        Control::Crash(error) => {
++                            self.error = Some(error);
++                            event_loop.exit();
++                        }
++                        Control::SetAutomaticWindowTabbing(_enabled) => {
++                            #[cfg(target_os = "macos")]
++                            {
++                                use winit::platform::macos::ActiveEventLoopExtMacOS;
++                                event_loop.set_allows_automatic_window_tabbing(_enabled);
+                             }
+-                            Control::Crash(error) => {
+-                                self.error = Some(error);
+-                                event_loop.exit();
+-                            }
+-                            Control::SetAutomaticWindowTabbing(_enabled) => {
+-                                #[cfg(target_os = "macos")]
+-                                {
+-                                    use winit::platform::macos::ActiveEventLoopExtMacOS;
+-                                    event_loop.set_allows_automatic_window_tabbing(_enabled);
+-                                }
+-                            }
+-                        },
+-                        _ => {
+-                            break;
+                         }
+                     },
+-                    task::Poll::Ready(_) => {
+-                        event_loop.exit();
++                    _ => {
+                         break;
+                     }
+-                };
+-            }
++                },
++                task::Poll::Ready(_) => {
++                    event_loop.exit();
++                    break;
++                }
++            };
+         }
+-    }
+-
+-    #[cfg(not(target_arch = "wasm32"))]
+-    {
+-        let mut runner = runner;
+-        let _ = event_loop.run_app(&mut runner);
+-
+-        runner.error.map(Err).unwrap_or(Ok(()))
+-    }
+-
+-    #[cfg(target_arch = "wasm32")]
+-    {
+-        use winit::platform::web::EventLoopExtWebSys;
+-        let _ = event_loop.spawn_app(runner);
+-
+-        Ok(())
+     }
+ }
+ 
+@@ -628,6 +641,7 @@
+                     window,
+                     &program,
+                     compositor.as_mut().expect("Compositor must be initialized"),
++                    proxy.clone(),
+                     exit_on_close_request,
+                     system_theme,
+                 );
+@@ -789,6 +803,7 @@
+                         let state = loop {
+                             let message_count = messages.len();
+                             let (state, _) = interface.update(
++                                &window.waker,
+                                 slice::from_ref(&redraw_event),
+                                 cursor,
+                                 &mut window.renderer,
+@@ -931,6 +946,7 @@
+                             || window.raw.pre_present_notify(),
+                         ) {
+                             Ok(()) => {
++                                events.push((id, core::Event::Presented));
+                                 present_span.finish();
+                             }
+                             Err(error) => match error {
+@@ -1077,6 +1093,7 @@
+                                 .get_mut(&id)
+                                 .expect("Get user interface")
+                                 .update(
++                                    &window.waker,
+                                     &window_events,
+                                     window.state.cursor(),
+                                     &mut window.renderer,
+@@ -1556,6 +1573,24 @@
+                     let _ = channel.send(size);
+                 }
+             }
++            window::Action::GetScreenInfo(id, channel) => {
++                let info = window_manager
++                    .get(id)
++                    .and_then(|window| window.raw.current_monitor())
++                    .map(|monitor| {
++                        let device_scale_factor = monitor.scale_factor();
++                        let size = monitor.size().to_logical(device_scale_factor);
++                        window::ScreenInfo {
++                            size: Size::new(size.width, size.height),
++                            depth: monitor.video_modes().next().map(|mode| mode.bit_depth()),
++                            device_scale_factor,
++                            refresh_rate: monitor
++                                .refresh_rate_millihertz()
++                                .map(|rate| rate / 1_000),
++                        }
++                    });
++                let _ = channel.send(info);
++            }
+             window::Action::SetAllowAutomaticTabbing(enabled) => {
+                 control_sender
+                     .start_send(Control::SetAutomaticWindowTabbing(enabled))
+@@ -1653,6 +1688,9 @@
+ 
+                 let _ = channel.send(Ok(()));
+             }
++        }
++        Action::Event { window, event } => {
++            events.push((window, event));
+         }
+         Action::Tick => {
+             for (_id, window) in window_manager.iter_mut() {
+--- a/winit/src/window.rs
++++ b/winit/src/window.rs
+@@ -4,11 +4,14 @@
+ 
+ pub use crate::core::window::{Event, Id, RedrawRequest, Settings};
+ 
++use crate::Proxy;
+ use crate::conversion;
++use crate::core;
+ use crate::core::alignment;
+ use crate::core::input_method;
+ use crate::core::mouse;
+ use crate::core::renderer;
++use crate::core::shell;
+ use crate::core::text;
+ use crate::core::theme;
+ use crate::core::time::Instant;
+@@ -52,6 +55,7 @@
+         window: Arc<winit::window::Window>,
+         program: &program::Instance<P>,
+         compositor: &mut C,
++        proxy: Proxy<P::Message>,
+         exit_on_close_request: bool,
+         system_theme: theme::Mode,
+     ) -> &mut Window<P, C> {
+@@ -62,12 +66,20 @@
+             compositor.create_surface(window.clone(), surface_size.width, surface_size.height);
+         let renderer = compositor.create_renderer();
+ 
++        let waker = shell::Waker::new(move || {
++            proxy.send_action(crate::runtime::Action::Event {
++                window: id,
++                event: core::Event::Waken,
++            });
++        });
++
+         let _ = self.aliases.insert(window.id(), id);
+ 
+         let _ = self.entries.insert(
+             id,
+             Window {
+                 raw: window,
++                waker,
+                 state,
+                 exit_on_close_request,
+                 surface,
+@@ -157,6 +169,7 @@
+     P::Theme: theme::Base,
+ {
+     pub raw: Arc<winit::window::Window>,
++    pub waker: shell::Waker,
+     pub state: State<P>,
+     pub exit_on_close_request: bool,
+     pub mouse_interaction: mouse::Interaction,
+--- a/runtime/src/window.rs
++++ b/runtime/src/window.rs
+@@ -147,6 +147,10 @@
+     /// Runs the closure with a reference to the [`Window`] with the given [`Id`].
+     Run(Id, Box<dyn FnOnce(&dyn Window) + Send>),
+ 
++    /// Runs the closure with an owned native window for a lifetime-bound integration.
++    #[cfg(not(target_arch = "wasm32"))]
++    RunOwned(Id, Box<dyn FnOnce(std::sync::Arc<dyn Window + Send + Sync>) + Send>),
++
+     /// Screenshot the viewport of the window.
+     Screenshot(Id, oneshot::Sender<Screenshot>),
+ 
+@@ -198,6 +202,26 @@
+ pub trait Window: HasWindowHandle + HasDisplayHandle {}
+ 
+ impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle {}
++
++/// Runs a native integration with shared ownership of the underlying window.
++///
++/// Drop the owner after detaching the integration. Retaining it after iced closes the
++/// window keeps the native window alive, so hosts must release it on window closure.
++#[cfg(not(target_arch = "wasm32"))]
++pub fn run_owned<T>(
++    id: Id,
++    f: impl FnOnce(std::sync::Arc<dyn Window + Send + Sync>) -> T + Send + 'static,
++) -> Task<T>
++where
++    T: Send + 'static,
++{
++    task::oneshot(move |channel| {
++        crate::Action::Window(Action::RunOwned(
++            id,
++            Box::new(move |window| { let _ = channel.send(f(window)); }),
++        ))
++    })
++}
+ 
+ /// Subscribes to the frames of the window of the running application.
+ ///
+--- a/winit/src/lib.rs
++++ b/winit/src/lib.rs
+@@ -1534,6 +1534,12 @@
+                     f(window);
+                 }
+             }
++            #[cfg(not(target_arch = "wasm32"))]
++            window::Action::RunOwned(id, f) => {
++                if let Some(window) = window_manager.get_mut(id) {
++                    f(window.raw.clone());
++                }
++            }
+             window::Action::Screenshot(id, channel) => {
+                 if let Some(window) = window_manager.get_mut(id)
+                     && let Some(compositor) = compositor
+--- a/winit/src/lib.rs
++++ b/winit/src/lib.rs
+@@ -32,6 +32,8 @@
+ mod error;
+ mod proxy;
+ mod window;
++mod native_window;
++pub use native_window::{NativeWindowFactory, NativeWindowIntegration};
+ 
+ pub use clipboard::Clipboard;
+ pub use error::Error;
+@@ -102,10 +104,22 @@
+ /// Creates the standard iced runner for an event loop owned by the caller.
+ ///
+ /// Forward the event loop's application-handler callbacks to the returned runner.
++/// Creates a runner without additional native window integrations.
+ pub fn create_runner<P>(
+     program: P,
+     event_loop_proxy: winit::event_loop::EventLoopProxy<Action<P::Message>>,
+     display_handle: winit::event_loop::OwnedDisplayHandle,
++) -> Result<Runner<P::Message>, Error>
++where P: Program + 'static, P::Theme: theme::Base,
++{
++    create_runner_with_native_windows(program, event_loop_proxy, display_handle, None)
++}
++
++pub fn create_runner_with_native_windows<P>(
++    program: P,
++    event_loop_proxy: winit::event_loop::EventLoopProxy<Action<P::Message>>,
++    display_handle: winit::event_loop::OwnedDisplayHandle,
++    native_factory: Option<Arc<dyn NativeWindowFactory>>,
+ ) -> Result<Runner<P::Message>, Error>
+ where
+     P: Program + 'static,
+@@ -176,6 +190,8 @@
+     let context = task::Context::from_waker(task::noop_waker_ref());
+ 
+     let runner = Runner {
++        native_integrations: std::collections::HashMap::new(),
++        native_factory,
+         instance,
+         context,
+         id: settings.id,
+@@ -195,6 +211,9 @@
+ 
+ /// The application handler for a running iced program.
+ pub struct Runner<Message: 'static> {
++    // Drop native integrations before the future that owns their window objects.
++    native_integrations: std::collections::HashMap<winit::window::WindowId, Box<dyn NativeWindowIntegration>>,
++    native_factory: Option<Arc<dyn NativeWindowFactory>>,
+     instance: std::pin::Pin<Box<dyn Future<Output = ()>>>,
+     context: task::Context<'static>,
+     id: Option<String>,
+@@ -236,6 +255,10 @@
+         window_id: winit::window::WindowId,
+         event: winit::event::WindowEvent,
+     ) {
++        let redraw = matches!(event, winit::event::WindowEvent::RedrawRequested);
++        if let Some(integration) = self.native_integrations.get_mut(&window_id) {
++            if integration.before_event(&event) { return; }
++        }
+         #[cfg(target_os = "windows")]
+         let is_move_or_resize = matches!(
+             event,
+@@ -247,6 +270,11 @@
+             Event::EventLoopAwakened(winit::event::Event::WindowEvent { window_id, event }),
+         );
+ 
++        if redraw {
++            if let Some(integration) = self.native_integrations.get_mut(&window_id) {
++                integration.after_redraw();
++            }
++        }
+         // TODO: Remove when unnecessary
+         // On Windows, we emulate an `AboutToWait` event after every `Resized` event
+         // since the event loop does not resume during resize interaction.
+@@ -282,6 +310,10 @@
+         );
+     }
+ 
++    fn exiting(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
++        self.native_integrations.clear();
++    }
++
+     fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+         self.process_event(
+             event_loop,
+@@ -291,6 +323,9 @@
+ }
+ 
+ impl<Message> Runner<Message> {
++    /// Retrieves a terminal error from a caller-owned event loop.
++    pub fn take_error(&mut self) -> Option<Error> { self.error.take() }
++
+     fn process_event(
+         &mut self,
+         event_loop: &winit::event_loop::ActiveEventLoop,
+@@ -308,6 +343,7 @@
+             match poll {
+                 task::Poll::Pending => match self.receiver.try_next() {
+                     Ok(Some(control)) => match control {
++                        Control::ReleaseNativeWindow(id) => { self.native_integrations.remove(&id); }
+                         Control::ChangeFlow(flow) => {
+                             use winit::event_loop::ControlFlow;
+ 
+@@ -408,11 +444,22 @@
+                                 };
+                             }
+ 
++                            let window = Arc::new(window);
++                            if let Some(factory) = &self.native_factory {
++                                match factory.create(event_loop, window.clone(), id, &title) {
++                                    Ok(integration) => { self.native_integrations.insert(window.id(), integration); }
++                                    Err(error) => {
++                                        self.error = Some(Error::NativeIntegrationFailed(error));
++                                        event_loop.exit();
++                                        break;
++                                    }
++                                }
++                            }
+                             self.process_event(
+                                 event_loop,
+                                 Event::WindowCreated {
+                                     id,
+-                                    window: Arc::new(window),
++                                    window,
+                                     exit_on_close_request,
+                                     make_visible: visible,
+                                     on_open,
+@@ -464,6 +511,7 @@
+ 
+ #[derive(Debug)]
+ enum Control {
++    ReleaseNativeWindow(winit::window::WindowId),
+     ChangeFlow(winit::event_loop::ControlFlow),
+     Exit,
+     Crash(Error),
+@@ -1321,6 +1369,7 @@
+                 let _ = interfaces.remove(&id);
+ 
+                 if let Some(window) = window_manager.remove(id) {
++                    let _ = control_sender.start_send(Control::ReleaseNativeWindow(window.raw.id()));
+                     if clipboard.window_id() == Some(window.raw.id()) {
+                         *clipboard = window_manager
+                             .first()
+@@ -1527,6 +1576,17 @@
+             window::Action::GetRawId(id, channel) => {
+                 if let Some(window) = window_manager.get_mut(id) {
+                     let _ = channel.send(window.raw.id().into());
++                }
++            }
++            window::Action::Operate(id, mut operation) => {
++                if let (Some(window), Some(interface)) = (window_manager.get_mut(id), interfaces.get_mut(&id)) {
++                    loop {
++                        interface.operate(&window.renderer, operation.as_mut());
++                        match operation.finish() {
++                            operation::Outcome::Chain(next) => operation = next,
++                            _ => break,
++                        }
++                    }
+                 }
+             }
+             window::Action::Run(id, f) => {
+--- a/runtime/src/window.rs
++++ b/runtime/src/window.rs
+@@ -146,6 +146,9 @@
+ 
+     /// Runs the closure with a reference to the [`Window`] with the given [`Id`].
+     Run(Id, Box<dyn FnOnce(&dyn Window) + Send>),
++
++    /// Runs a widget operation against one window's current interface.
++    Operate(Id, Box<dyn crate::core::widget::Operation>),
+ 
+     /// Runs the closure with an owned native window for a lifetime-bound integration.
+     #[cfg(not(target_arch = "wasm32"))]
+--- a/winit/src/error.rs
++++ b/winit/src/error.rs
+@@ -4,6 +4,9 @@
+ /// An error that occurred while running an application.
+ #[derive(Debug, thiserror::Error)]
+ pub enum Error {
++    /// A requested native integration failed before the window was shown.
++    #[error("native window integration failed: {0}")]
++    NativeIntegrationFailed(String),
+     /// The futures executor could not be created.
+     #[error("the futures executor could not be created")]
+     ExecutorCreationFailed(futures::io::Error),
+--- /dev/null
++++ b/winit/src/native_window.rs
+@@ -0,0 +1,17 @@
++//! Optional main-thread integrations installed before a native window is displayed.
++use std::sync::Arc;
++use winit::{event::WindowEvent, event_loop::ActiveEventLoop, window::Window};
++
++/// The factory is shareable; integrations themselves remain confined to the UI thread.
++pub trait NativeWindowFactory: Send + Sync + 'static {
++    fn create(&self, event_loop: &ActiveEventLoop, window: Arc<Window>, id: crate::core::window::Id,
++        title: &str) -> Result<Box<dyn NativeWindowIntegration>, String>;
++}
++
++/// The runner releases this object before releasing its native window owner.
++pub trait NativeWindowIntegration: 'static {
++    /// Return true only when an integration consumed this input event.
++    fn before_event(&mut self, event: &WindowEvent) -> bool;
++    /// Called after iced processed a redraw; may enqueue a targeted widget operation.
++    fn after_redraw(&mut self);
++}
+--- a/winit/src/lib.rs
++++ b/winit/src/lib.rs
+@@ -115,6 +115,7 @@
+     create_runner_with_native_windows(program, event_loop_proxy, display_handle, None)
+ }
+ 
++/// Creates a runner with optional main-thread native window integrations.
+ pub fn create_runner_with_native_windows<P>(
+     program: P,
+     event_loop_proxy: winit::event_loop::EventLoopProxy<Action<P::Message>>,
+@@ -343,7 +344,7 @@
+             match poll {
+                 task::Poll::Pending => match self.receiver.try_next() {
+                     Ok(Some(control)) => match control {
+-                        Control::ReleaseNativeWindow(id) => { self.native_integrations.remove(&id); }
++                        Control::ReleaseNativeWindow(id) => { let _ = self.native_integrations.remove(&id); }
+                         Control::ChangeFlow(flow) => {
+                             use winit::event_loop::ControlFlow;
+ 
+@@ -447,7 +448,7 @@
+                             let window = Arc::new(window);
+                             if let Some(factory) = &self.native_factory {
+                                 match factory.create(event_loop, window.clone(), id, &title) {
+-                                    Ok(integration) => { self.native_integrations.insert(window.id(), integration); }
++                                    Ok(integration) => { let _ = self.native_integrations.insert(window.id(), integration); }
+                                     Err(error) => {
+                                         self.error = Some(Error::NativeIntegrationFailed(error));
+                                         event_loop.exit();
+--- a/winit/src/native_window.rs
++++ b/winit/src/native_window.rs
+@@ -4,6 +4,7 @@
+ 
+ /// The factory is shareable; integrations themselves remain confined to the UI thread.
+ pub trait NativeWindowFactory: Send + Sync + 'static {
++    /// Creates an integration while the native window is still hidden.
+     fn create(&self, event_loop: &ActiveEventLoop, window: Arc<Window>, id: crate::core::window::Id,
+         title: &str) -> Result<Box<dyn NativeWindowIntegration>, String>;
+ }
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -5,6 +5,9 @@
+ /// An error that occurred while running an application.
+ #[derive(Debug, thiserror::Error)]
+ pub enum Error {
++    /// A requested native window integration failed.
++    #[error("native window integration failed: {0}")]
++    NativeIntegrationFailed(String),
+     /// The futures executor could not be created.
+     #[error("the futures executor could not be created")]
+     ExecutorCreationFailed(futures::io::Error),
+@@ -21,6 +24,7 @@
+ impl From<shell::Error> for Error {
+     fn from(error: shell::Error) -> Error {
+         match error {
++            shell::Error::NativeIntegrationFailed(error) => Error::NativeIntegrationFailed(error),
+             shell::Error::ExecutorCreationFailed(error) => Error::ExecutorCreationFailed(error),
+             shell::Error::WindowCreationFailed(error) => {
+                 Error::WindowCreationFailed(Box::new(error))
+
+--- a/runtime/src/user_interface.rs
++++ b/runtime/src/user_interface.rs
+@@ -307,8 +307,14 @@
+         };
+ 
+         drop(maybe_overlay);
+ 
++        // Removing an overlay ends its pass early. Preserve processed statuses and
++        // pass every remaining event to the base instead of truncating this batch.
++        let overlay_statuses = overlay_statuses
++            .into_iter()
++            .chain(std::iter::repeat(event::Status::Ignored));
++
+         let event_statuses = events
+             .iter()
+             .zip(overlay_statuses)
+             .map(|(event, overlay_status)| {

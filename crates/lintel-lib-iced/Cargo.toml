@@ -1,0 +1,46 @@
+[package]
+name = "lintel-lib-iced"
+version.workspace = true
+edition = "2024"
+
+[features]
+debug = ["iced/debug", "dep:iced_debug"]
+
+[dependencies]
+iced_debug = { path = "../../vendor/iced/debug", optional = true }
+
+[target.'cfg(not(target_vendor = "win7"))'.dependencies]
+iced = { path = "../../vendor/iced", features = [
+  "tokio",
+  "wgpu",
+  "tiny-skia",
+  "lazy",
+  "advanced",
+  "image",
+  "svg",
+  "canvas",
+  #"unconditional-rendering",
+] }
+iced_winit = { path = "../../vendor/iced/winit" }
+iced_wgpu = { path = "../../vendor/iced/wgpu" }
+iced_runtime = { path = "../../vendor/iced/runtime" }
+iced_program = { path = "../../vendor/iced/program" }
+iced_core = { path = "../../vendor/iced/core" }
+
+[target.'cfg(target_vendor = "win7")'.dependencies]
+iced = { path = "../../vendor/iced", features = [
+  "tokio",
+  "wgpu",
+  "tiny-skia",
+  "lazy",
+  "advanced",
+  "image",
+  "svg",
+  "canvas",
+  #"unconditional-rendering",
+] }
+iced_winit = { path = "../../vendor/iced/winit" }
+iced_wgpu = { path = "../../vendor/iced/wgpu" }
+iced_runtime = { path = "../../vendor/iced/runtime" }
+iced_program = { path = "../../vendor/iced/program" }
+iced_core = { path = "../../vendor/iced/core" }

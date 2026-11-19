@@ -1,0 +1,5 @@
+module lintel.tests;
+
+interface Echo {
+  Ping(string text) => (string text, uint32 process_id);
+};

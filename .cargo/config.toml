@@ -1,0 +1,13 @@
+[net]
+git-fetch-with-cli = true
+
+[env]
+WORKSPACE_ROOT = { value = ".", relative = true }
+
+[build]
+rustflags = [
+  "-Awarnings",
+  "-Csymbol-mangling-version=v0",
+  "-Ctarget-feature=+crt-static",
+  "-Cforce-frame-pointers=yes",
+]

@@ -1,0 +1,21 @@
+[package]
+name = "lintel-lib-utils"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+cbor4ii = { workspace = true, features = ["serde1"] }
+chrono.workspace = true
+ctor = "0.4.1"
+reqwest.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+fs_extra.workspace = true
+prost = "0.14.1"
+lintel-lib-iced = { workspace = true }
+lintel-lib-env.workspace = true
+rodio = "0.21.1"
+semver.workspace = true

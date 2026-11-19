@@ -1,0 +1,7 @@
+[package]
+name = "lintel-plugin-iced-api"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+lintel-lib-iced.workspace = true

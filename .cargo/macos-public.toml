@@ -1,0 +1,5 @@
+# Select with `cargo -Z lockfile-path --config .cargo/macos-public.toml`.
+include = ["macos-public-dependencies.toml"]
+
+[resolver]
+lockfile-path = "profiles/macos-public/Cargo.lock"

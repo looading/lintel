@@ -1,0 +1,26 @@
+[package]
+name = "lintel-cli"
+default-run = "lintel"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Command-line tools for Lintel desktop applications"
+
+[[bin]]
+name = "lintel"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.5.57", features = ["derive"] }
+lintel-build = { version = "0.1.0", path = "../lintel-build", features = ["portable"] }
+lintel-crash = { version = "0.1.0", path = "../lintel-crash" }
+lintel-updater = { version = "0.1.0", path = "../lintel-updater" }
+serde_json = "1"
+
+[workspace]
+
+[build-dependencies]
+flate2 = "1"
+tar = "0.4"
+tempfile = "3.24"

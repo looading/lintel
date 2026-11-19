@@ -1,0 +1,115 @@
+[package]
+name = "lintel-desktop"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+description = "Main-thread native desktop integrations for Lintel"
+
+[workspace]
+resolver = "2"
+exclude = ["native-platform"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+
+[dependencies]
+accesskit = { version = "0.25", optional = true }
+accesskit_winit = { version = "0.34", default-features = false, features = ["rwh_06", "accesskit_unix", "async-io"], optional = true }
+arboard = { version = "3.6", optional = true, default-features = false }
+fs2 = "0.4"
+futures-channel = "0.3"
+futures-lite = "2"
+futures-timer = { version = "3" }
+futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"], optional = true }
+getrandom = { version = "0.3", features = ["std"] }
+hmac = "0.12"
+lintel-desktop-platform = { version = "0.1.0", path = "native-platform", optional = true }
+notify-rust = { version = "4", optional = true }
+open = { version = "5", optional = true }
+rfd = { version = "0.17", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+url = "2"
+winit = { version = "0.30", optional = true }
+zeroize = { version = "1", features = ["alloc"] }
+
+[features]
+default = []
+native = ["native-ui", "clipboard", "dialogs", "notifications", "opener", "credentials", "permissions", "accessibility", "windows-menu"]
+native-ui = ["dep:muda", "dep:tray-icon", "dep:global-hotkey", "dep:objc2"]
+clipboard = ["dep:arboard"]
+dialogs = ["dep:rfd"]
+notifications = ["dep:notify-rust"]
+opener = ["dep:open"]
+credentials = ["dep:keyring"]
+example-winit = ["dep:winit"]
+permissions = ["dep:macos-accessibility-client", "dep:lintel-desktop-platform", "dep:objc2-core-graphics", "dep:objc2-io-kit", "dep:windows", "dep:futures-util"]
+accessibility = ["dep:accesskit", "dep:accesskit_winit", "dep:winit", "dep:objc2"]
+windows-menu = ["native-ui", "dep:lintel-desktop-platform", "dep:winit"]
+linux = ["linux-tray", "linux-x11-shortcuts", "linux-portal-shortcuts"]
+linux-tray = ["dep:ksni", "dep:async-lock", "dep:async-global-executor", "dep:async-channel"]
+linux-x11-shortcuts = ["dep:x11rb", "dep:async-lock", "dep:async-global-executor", "dep:async-channel"]
+linux-portal-shortcuts = ["dep:zbus", "dep:async-lock", "dep:async-global-executor", "dep:async-channel"]
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+global-hotkey = { version = "0.7", optional = true }
+muda = { version = "0.15.3", optional = true }
+tray-icon = { version = "0.19.3", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["apple-native"], optional = true }
+macos-accessibility-client = { version = "0.0.2", optional = true }
+objc2 = { version = "0.6", optional = true }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGWindow"], optional = true }
+objc2-io-kit = { version = "0.3", default-features = false, features = ["std", "hidsystem"], optional = true }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+security-framework = "3"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["windows-native"], optional = true }
+windows = { version = "0.61", features = ["UI_Notifications"], optional = true }
+windows-permissions = "0.2.4"
+
+[target."cfg(unix)".dependencies]
+async-channel = { version = "2", optional = true }
+async-global-executor = { version = "3.1", optional = true }
+async-lock = { version = "3", optional = true }
+ksni = { version = "0.3.7", default-features = false, features = ["async-io"], optional = true }
+rustix = { version = "1", features = ["process", "fs"] }
+x11rb = { version = "0.13", optional = true }
+zbus = { version = "=5.12.0", default-features = false, features = ["async-io"], optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["sync-secret-service", "crypto-rust", "vendored"], optional = true }
+
+[dev-dependencies]
+futures-lite = "2"
+static_assertions = "1"
+tempfile = "3"
+
+[[example]]
+name = "desktop"
+path = "examples/desktop.rs"
+required-features = ["native", "example-winit"]
+
+[[example]]
+name = "credential_smoke"
+path = "examples/credential_smoke.rs"
+required-features = ["credentials"]
+
+[[example]]
+name = "permissions_smoke"
+path = "examples/permissions_smoke.rs"
+required-features = ["permissions"]
+
+[[example]]
+name = "linux_desktop"
+path = "examples/linux_desktop.rs"
+required-features = ["linux", "example-winit"]

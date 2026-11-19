@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+  <title>Lintel CEF fixture</title>
+  <style>
+    body { margin: 0; padding: 40px; background: #edf5f2; color: #12342a; font: 18px system-ui; }
+    main { max-width: 620px; padding: 28px; background: white; border: 1px solid #b0c9be; border-radius: 12px; }
+    h1 { margin: 0 0 16px; }
+    button, input { font: inherit; padding: 8px 12px; }
+    button { cursor: pointer; }
+    #status { min-height: 24px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Lintel WebView</h1>
+    <p>This local page is rendered by the imported CEF off-screen pipeline.</p>
+    <label for="input">Echo text</label>
+    <input id="input" value="Lintel roundtrip">
+    <button id="echo">Send to Rust</button>
+    <p id="status" aria-live="polite">Waiting for the native bridge…</p>
+  </main>
+  <script>
+    const input = document.querySelector('#input');
+    const status = document.querySelector('#status');
+
+    function echo() {
+      if (typeof window.__rsAPI__ !== 'function') {
+        status.textContent = 'Native bridge unavailable';
+        return;
+      }
+      const expected = input.value;
+      window.__rsAPI__('lintel.demo.echo', expected, reply => {
+        if (reply !== expected) {
+          status.textContent = 'Unexpected bridge response';
+          return;
+        }
+        status.textContent = 'Rust replied: ' + reply;
+        window.__rsAPI__('lintel.demo.verified', reply, () => {}, () => {});
+      }, () => { status.textContent = 'Native bridge request failed'; });
+    }
+
+    document.querySelector('#echo').addEventListener('click', echo);
+    window.addEventListener('load', echo);
+  </script>
+</body>
+</html>

@@ -1,0 +1,492 @@
+{
+  "schema_version": 1,
+  "kind": "lintel.framework",
+  "framework": {
+    "name": "Lintel",
+    "version": "0.1.0",
+    "repository_root": ".",
+    "summary": "Rust desktop framework with a small public facade, pinned public renderer, optional services and application-owned tools."
+  },
+  "entry_points": [
+    {
+      "symbol": "lintel::application",
+      "path": "src/application.rs",
+      "required_features": [],
+      "summary": "Native single-window State/Message/update/view application; set an explicit reverse-DNS id."
+    },
+    {
+      "symbol": "lintel::multi_window",
+      "path": "src/multi_window.rs",
+      "required_features": [],
+      "summary": "Native managed windows, ordinary typed messages and tasks."
+    },
+    {
+      "symbol": "lintel::application_with_context",
+      "path": "src/application.rs",
+      "required_features": [],
+      "summary": "Fallible native initialization with AppContext after plugins and services start.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::multi_window_with_context",
+      "path": "src/multi_window.rs",
+      "required_features": [],
+      "summary": "Fallible contextual native boot with WindowManager and initial Task.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::webview_app",
+      "path": "src/webview_app.rs",
+      "required_features": [
+        "public-cef"
+      ],
+      "summary": "Embedded local pages, typed/async bridge commands, independent window sessions."
+    },
+    {
+      "symbol": "lintel::agent",
+      "path": "src/agent/",
+      "required_features": [
+        "agent"
+      ],
+      "summary": "Provider-neutral typed tool registry, explicit grants, bounded execution/progress and existing task-scope cancellation.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::process",
+      "path": "src/process.rs",
+      "required_features": [
+        "multiprocess"
+      ],
+      "summary": "ProcessHost, typed service directory/calls, worker entry and explicit trusted native runtime.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::WebviewCommandContext",
+      "path": "src/webview_bridge.rs",
+      "required_features": [
+        "public-cef"
+      ],
+      "summary": "Weak scoped services and trusted page metadata; native ingress generation and admission start gate reject stale queued work.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::process::ProcessHost::wait_ready",
+      "path": "crates/lintel-process/src/readiness.rs",
+      "required_features": [
+        "multiprocess"
+      ],
+      "summary": "Bounded absolute-deadline readiness and later-attempt waits using existing snapshots and events; no RPC replay.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::process::DirectoryClient::connect_client",
+      "path": "crates/lintel-process/src/directory.rs",
+      "required_features": [
+        "multiprocess"
+      ],
+      "summary": "Immediately submit typed discovery and bind one owned Send client; retain routed generation, original deadline, quota and default-deny policy. No automatic reconnect or replay.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel_build::build_with_service_processes",
+      "path": "crates/lintel-build/src/cargo.rs",
+      "required_features": [],
+      "summary": "Validate declared service shape, all binary targets and application self-reference before compiling; preserve single-target build and prebuilt bundle paths.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::process::ProcessWorker::connect_with_crash_reporting",
+      "path": "crates/lintel-process/src/worker.rs",
+      "required_features": [
+        "multiprocess",
+        "crash-reporting"
+      ],
+      "summary": "Opt-in worker-native capture before Mojo load; preserve the ordinary worker contract and record fixed service identity/supervisor attempt.",
+      "status": "implemented"
+    },
+    {
+      "symbol": "lintel::crash::CrashReporter::start_service",
+      "path": "crates/lintel-crash/src/lib.rs",
+      "required_features": [
+        "crash-reporting"
+      ],
+      "summary": "Reuse local native reporter with validated service correlation metadata; no arbitrary fields, endpoint capture or upload.",
+      "status": "implemented"
+    }
+  ],
+  "features": [
+    {
+      "name": "public-iced",
+      "summary": "Default pinned public iced/winit integration from the vendored source tree.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "macOS native evidence and selected Windows/Linux target checks; individual platform acceptance differs."
+    },
+    {
+      "name": "public-cef",
+      "summary": "Public CEF embedded WebView path.",
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "status": "implemented",
+      "validation_boundary": "macOS arm64 native evidence; Windows API_ONLY/static SDK checks only, native packaging remains gated."
+    },
+    {
+      "name": "desktop",
+      "summary": "Main-thread native owner with awaitable thread-safe services; permissions, activation and accessibility.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Linux needs explicit optional backends; no universal permission/session fallback."
+    },
+    {
+      "name": "services",
+      "summary": "Store, capability-bound files, network policy and diagnostics plugins.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Model/local-fixture tests do not replace each OS runtime acceptance."
+    },
+    {
+      "name": "sqlite",
+      "summary": "Dedicated worker, bounded admission and transactional migrations.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Bundled Windows C build needs a matching MSVC SDK."
+    },
+    {
+      "name": "updater",
+      "summary": "Signed releases, external helpers and protected managed installation.",
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Windows native file sharing/ACL/Registry/installer behavior remains unaccepted."
+    },
+    {
+      "name": "crash-reporting",
+      "summary": "Optional local native crash helper; also forwards worker capture only when multiprocess is enabled. CEF Crashpad remains an alternate browser backend.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Backend runtime configuration is exclusive; native helper and dump evidence is platform-specific."
+    },
+    {
+      "name": "linux-desktop",
+      "summary": "Explicit SNI tray, X11 and user-mediated portal shortcut backends.",
+      "platforms": [
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Protocol fixtures and target checks exist; real user desktop/provider acceptance remains open."
+    },
+    {
+      "name": "agent",
+      "summary": "Application-owned tool execution; no model vendor or transport enabled by default.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Typed serialization, policy, bounds and cooperative cancellation require explicit application integration; not an in-process sandbox."
+    },
+    {
+      "name": "multiprocess",
+      "summary": "Optional typed Mojo local service processes with supervised lifecycle and explicit native runtime.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "status": "implemented",
+      "validation_boundary": "macOS arm64 native UI and CEF/JS joint service runs, scoped cancellation, restart/reconnect and cleanup accepted; Windows/Linux target checks only. Trusted matching native image required; not an OS sandbox."
+    }
+  ],
+  "crate_areas": [
+    {
+      "path": "src/",
+      "summary": "Public facade and high-level runtime integration."
+    },
+    {
+      "path": "crates/lintel-core/",
+      "summary": "AppContext, plugin lifecycle, typed service store and managed tasks."
+    },
+    {
+      "path": "crates/lintel-plugin-iced/",
+      "summary": "Existing program FIFO and renderer integration."
+    },
+    {
+      "path": "crates/lintel-iced-widgets/",
+      "summary": "Embedded CEF WebView widget and OSR integration."
+    },
+    {
+      "path": "crates/lintel-desktop/",
+      "summary": "Thread-confined native owner and safe service interfaces."
+    },
+    {
+      "path": "crates/lintel-build/",
+      "summary": "Scaffolding, build/package/signing and distribution verification library."
+    },
+    {
+      "path": "crates/lintel-cli/",
+      "summary": "Installed CLI and embedded portable framework archive."
+    },
+    {
+      "path": "crates/lintel-updater/",
+      "summary": "Release verification, helpers and managed installation."
+    },
+    {
+      "path": "crates/lintel-process/",
+      "summary": "Dedicated Mojo supervision thread, typed directory and worker lifecycle; no GUI dependency."
+    }
+  ],
+  "templates": [
+    {
+      "name": "native",
+      "summary": "Minimal native State/Message application with one direct lintel dependency.",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "app_entry": "src/main.rs",
+      "source_paths": [
+        "src/main.rs",
+        "Cargo.toml"
+      ],
+      "validation_commands": [
+        "cargo check",
+        "cargo test"
+      ],
+      "run_command": {
+        "command": "lintel run",
+        "platforms": [
+          "macos",
+          "windows"
+        ]
+      },
+      "validation_boundary": "Resolve the initial app lock entry before --locked; zero tests are not application behavior evidence. Linux may run via Cargo, while CLI packaging/run support differs.",
+      "generation_hosts": [
+        "macos"
+      ]
+    },
+    {
+      "name": "webview",
+      "summary": "Embedded local WebView page and Rust command bridge.",
+      "platforms": [
+        "macos"
+      ],
+      "app_entry": "src/main.rs",
+      "source_paths": [
+        "src/main.rs",
+        "ui/index.html",
+        "build.rs",
+        "Cargo.toml"
+      ],
+      "validation_commands": [
+        "cargo check",
+        "cargo test"
+      ],
+      "run_command": {
+        "command": "lintel run",
+        "platforms": [
+          "macos"
+        ]
+      },
+      "validation_boundary": "CEF SDK/resources are real prerequisites. Compile, bundle load and native renderer acceptance are separate checks.",
+      "generation_hosts": [
+        "macos"
+      ]
+    },
+    {
+      "name": "windows-webview",
+      "summary": "Experimental official CEF bootstrap App.dll starter.",
+      "platforms": [
+        "windows"
+      ],
+      "app_entry": "src/lib.rs",
+      "source_paths": [
+        "src/lib.rs",
+        "ui/index.html",
+        "WINDOWS-CEF.md",
+        "Cargo.toml"
+      ],
+      "validation_commands": [
+        "cargo check --lib --target x86_64-pc-windows-msvc --features api-only"
+      ],
+      "validation_boundary": "API_ONLY is neither SDK link nor bootstrap/sandbox execution. No default run or packaging pass is implied.",
+      "generation_hosts": [
+        "macos"
+      ]
+    },
+    {
+      "name": "multiprocess",
+      "summary": "Native UI plus independent typed Mojo Echo service and shared protocol crate.",
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "generation_hosts": [
+        "macos"
+      ],
+      "app_entry": "src/main.rs",
+      "source_paths": [
+        "src/main.rs",
+        "src/bin/lintel-worker.rs",
+        "protocol/Cargo.toml",
+        "protocol/build.rs",
+        "protocol/src/lib.rs",
+        "protocol/schema/echo.mojom",
+        "Cargo.toml",
+        "src/crash_options.rs"
+      ],
+      "validation_commands": [
+        "cargo check --bins"
+      ],
+      "validation_boundary": "Native execution requires an explicitly supplied trusted matching Mojo SDK 0.3.0 library; target checks are not native acceptance.",
+      "optional_features": [
+        "service-crash-reports"
+      ]
+    },
+    {
+      "name": "webview-multiprocess",
+      "summary": "Local CEF page calling an independently supervised typed Mojo Echo service.",
+      "platforms": [
+        "macos"
+      ],
+      "generation_hosts": [
+        "macos"
+      ],
+      "app_entry": "src/main.rs",
+      "source_paths": [
+        "src/main.rs",
+        "ui/index.html",
+        "build.rs",
+        "src/bin/lintel-worker.rs",
+        "protocol/Cargo.toml",
+        "protocol/build.rs",
+        "protocol/src/lib.rs",
+        "protocol/schema/echo.mojom",
+        "Cargo.toml",
+        "src/crash_options.rs"
+      ],
+      "validation_commands": [
+        "cargo check --bins"
+      ],
+      "validation_boundary": "macOS arm64 native JS/Mojo, relocated prebuilt delivery, long16.2s command, host/client timeout+abort, multiwindow/restart/cancel/readback accepted. Tests use mock keychain; Windows/Linux target checks only.",
+      "optional_features": [
+        "service-crash-reports"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "command": "lintel describe --json",
+      "summary": "Emit this embedded versioned catalog without host probes.",
+      "effects": "read-only",
+      "validation_boundary": "Framework discovery, not doctor/host validation or execution permission."
+    },
+    {
+      "command": "lintel new",
+      "summary": "Generate a native, WebView or multiprocess consumer and portable framework; reject template-specific worker/protocol name collisions.",
+      "effects": "write-artifacts",
+      "validation_boundary": "The current generator runs on macOS hosts. Template platforms name consumer targets, not generator host support. New or empty destination only; validate the consumer on its actual target.",
+      "platforms": [
+        "macos"
+      ]
+    },
+    {
+      "command": "lintel prepare",
+      "summary": "Prepare the pinned public dependency source for a framework checkout.",
+      "effects": "write-cache",
+      "validation_boundary": "Dependency preparation is not compilation or native acceptance."
+    },
+    {
+      "command": "lintel build",
+      "summary": "Preflight all declared service targets, then build the selected application and its service binaries with the same configuration.",
+      "effects": "run-build-tools",
+      "validation_boundary": "Matching target toolchain and actual native dependencies required."
+    },
+    {
+      "command": "lintel run",
+      "summary": "Build/bundle/run a development application.",
+      "effects": "run-application",
+      "validation_boundary": "Supported native host only; forwarded application arguments remain data."
+    },
+    {
+      "command": "lintel bundle",
+      "summary": "Validate and produce a native app/portable artifact.",
+      "effects": "write-artifacts",
+      "validation_boundary": "Windows CEF packaging is gated; signing is explicit."
+    },
+    {
+      "command": "lintel windows distribution inspect",
+      "summary": "Verify a signed complete offline tree with an independent trusted public key.",
+      "effects": "read-only",
+      "validation_boundary": "Ed25519 byte authenticity is not Authenticode chain trust or native installation."
+    },
+    {
+      "command": "lintel windows distribution stage",
+      "summary": "Plan by default; explicit execute produces a signed immutable offline directory.",
+      "effects": "explicit-write-artifacts",
+      "validation_boundary": "Never modify payload after signing; private signing key stays outside artifact."
+    },
+    {
+      "command": "lintel windows install-distribution",
+      "summary": "Inspect by default; explicit execute consumes the protected verified snapshot.",
+      "effects": "explicit-native-install",
+      "validation_boundary": "Windows only; preserve LocalAppData/ACL/ownership/protocol checks."
+    },
+    {
+      "command": "lintel run --mojo-runtime PATH",
+      "summary": "Build declared service binaries, verify/package an explicit native Mojo image, then run the application.",
+      "effects": "build-package-native-run",
+      "validation_boundary": "No default runtime download; target/platform and existing signing checks apply. A provided binary remains a trusted-code decision."
+    },
+    {
+      "command": "lintel bundle --worker-crash-helper PATH",
+      "summary": "Package the dedicated lintel-worker-crash-helper role with existing native image and publication checks.",
+      "effects": "write-artifacts",
+      "validation_boundary": "Copies an explicitly selected trusted helper; does not install a reporter. Can coexist with CEF Crashpad in a different process; browser reporter conflict remains."
+    }
+  ],
+  "verification": {
+    "ai_dev_loop_default": false,
+    "platform_limits": [
+      "Windows/Linux native desktop/provider/install acceptance remains incomplete.",
+      "Windows CEF API_ONLY/static archive checks do not establish SDK loading, sandbox or packaging.",
+      "Screen-reader speech, visible notification, clipboard write and native global shortcut delivery are not all accepted.",
+      "A model, schema, catalog or accepted queue request does not grant permissions or prove completed business work."
+    ],
+    "guides": [
+      "AGENTS.md",
+      "docs/capabilities.md",
+      "docs/runtime.md",
+      "docs/menu-accessibility.md",
+      "docs/windows-distribution.md",
+      "docs/agent-tools.md",
+      "docs/context-initialization.md",
+      "docs/multiprocess.md"
+    ]
+  }
+}

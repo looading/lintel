@@ -1,0 +1,9 @@
+[package]
+name = "lintel-lib-env"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+semver = "1"
+anyhow.workspace = true
+os_info.workspace = true

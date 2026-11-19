@@ -1,0 +1,102 @@
+Mode: built-in image_gen
+Asset: lintel-architecture-handdrawn-2026-11-17.png
+Basis: current src/lib.rs, docs/runtime.md, and a read-only architecture review.
+
+BASE PROMPT
+
+Use case: infographic-diagram.
+Create ONE polished, technically accurate, hand-drawn architecture diagram for the Rust desktop framework Lintel. It should be a beautiful readable engineering sketch, suitable for sharing in a design document. Landscape 16:10 canvas, high resolution. Warm ivory paper background, charcoal pencil/fine liner outlines with subtly imperfect double strokes, gentle pastel blue, mint green, lavender and soft orange washes, light hatch shading. Lots of whitespace, carefully aligned layers and small clean arrows. Chinese text is clean and highly legible, like neat handwritten technical notes; English code identifiers must be spelled exactly. No decorative mascot, no fake logo, no 3D, no UI screenshot. Architecture correctness and readable text are more important than ornaments. Do not invent components or add capabilities.
+
+Title at top left, large: “Lintel 桌面应用框架”
+Subtitle: “业务轻量接入 · 复用现有实现 · 按需装配”
+
+LAYOUT: Main architecture occupies the left 78% of the page. A separate orange build/distribution column occupies the right 22%. The main architecture reads top to bottom: two business-entry cards -> public facade -> a large application-main-process runtime box -> a slim external CEF-process strip and platform strip. Do not overcrowd.
+
+TOP: two separate light green business cards, side by side.
+Card A title “Rust 业务”, detail “State / Message / update / view”
+Card B title “Web 业务”, detail “HTML / JS”
+Below them a light blue facade strip titled “Lintel 公共入口”.
+Under the Rust card show “application() / multi_window()”.
+Under the Web card show “webview_app()”.
+Connect Rust to its entry with a downward arrow. Connect Web to its entry with a downward arrow. A small clear bidirectional connection labelled “JS Bridge / 命令权限” leads between Web business and the CEF WebView widget described below. Do not imply webview_app uses the same State/update/view function signature as Rust.
+
+MAIN BOX, with a slightly heavier hand-drawn rounded border:
+Heading “应用运行时 · 主进程”
+Small line under heading “AppBuilder 装配”
+
+Inside it, organize clear columns, not a spaghetti graph:
+LEFT column, core:
+a card “AppContext”, subtitle “共享上下文”
+two distinct little boxes underneath it “PluginManager” with tiny “启动 / 回滚 / 停止”, and “ServiceStore” with tiny “类型化服务”
+a smaller card “Tokio / TaskScope”, detail “应用 · 窗口 · 页面任务”
+a horizontal base/control card “winit 主线程事件循环”
+
+MIDDLE column, separate routing mechanisms:
+a card “WindowManager”, detail “多窗口 / 生命周期”
+below it a slim box “窗口命令队列（有界）”, arrow to “winit 主线程事件循环”
+a DIFFERENT slim box “程序 FIFO（有界）”, detail “Create / Update / Close”, arrow to the iced content/composition card on the right.
+These are two different queues, not one combined message bus. Add a small arrow from the facade toward the appropriate middle cards and a connection from AppContext toward the runtime routes.
+
+RIGHT column, window content:
+one light lavender container titled “窗口内容 · iced 合成”
+inside it two sibling component cards “iced 原生控件” and “CEF WebView widget”
+the CEF card has tiny text “OSR 帧 / 纹理”
+below these siblings, within this container, show “iced / wgpu · tiny-skia”
+a downward arrow from this composition container to a card “winit 原生多窗口”.
+It must be unmistakable that CEF is embedded as an iced content component inside managed native windows, not a second independent window framework.
+
+BOTTOM INSIDE MAIN BOX:
+a dashed-border group labelled “按需能力 / 插件集成”
+four small cards within:
+“desktop” / “菜单 · 托盘 · 权限 · AX”
+“存储与网络” / “Store · Network · SQLite”
+“诊断与崩溃” / “日志 · 本地报告”
+“updater SDK” / “检查 · 下载 · 验证”
+Use subtle connectors to AppContext/ServiceStore. Do not label every capability as a Plugin implementation, since some are directly owned runtime services.
+A tiny note under the diagnostic card: “报告后端二选一：Native / CEF Crashpad”. This is runtime backend configuration, not mutually exclusive Cargo features.
+
+OUTSIDE AND JUST BELOW THE MAIN-PROCESS BOX:
+a narrow outlined strip “CEF 子进程” with small detail “Renderer / GPU / Crashpad”
+an upward arrow labelled “OSR” from this external process strip to the CEF WebView widget. It is outside the application's main-process frame.
+At the page bottom under the main architecture, a soft grey-blue strip “平台适配：macOS · Windows · Linux”. Connect to native-window/desktop runtime area unobtrusively. No claim that every platform has passed native testing.
+
+RIGHT ORANGE COLUMN, visibly outside the runtime boundary:
+Heading “构建与发行”
+tiny subtitle “独立工具链”
+stacked cards with downward arrows:
+“lintel CLI”
+“lintel-build”
+“构建 / 打包 / 签名”
+“应用包 / 签名分发目录”
+A dashed orange arrow from CLI toward the top business cards labelled “模板生成”.
+A dashed orange build-input arrow from the application architecture toward lintel-build labelled “构建输入”.
+Below a divider in the right column, a separate card “installer / updater helper”, detail “安装 · 替换 · 重启”.
+A dashed orange arrow labelled “受控交接” goes from the runtime's updater SDK to this external helper.
+Do NOT imply lintel-build is a resident service or standalone daemon.
+
+Small legend in a quiet corner: “实线：运行时关系   橙色虚线：构建与发行”
+Small footer: “基于当前实现的逻辑架构 · 平台验收范围见能力清单”
+
+Keep labels exactly as supplied where possible. No additional paragraphs, no duplicated boxes, no crossed arrows through text, and no invented “Electron”, “Tauri”, “Wry”, “GTK”, “MSI” or other technologies.
+
+FIRST TARGETED EDIT
+
+Edit this existing hand-drawn Lintel architecture diagram. Keep the exact same artwork, paper, handwritten lettering, colors, all boxes, labels, overall composition and layout. Make ONLY the following targeted engineering-accuracy corrections to arrows, preserving everything else.
+
+1. The WindowManager must point downward ONLY to the box “窗口命令队列（有界）”. Delete the downward arrow from WindowManager into “程序 FIFO（有界）”. The program FIFO is NOT owned by WindowManager.
+2. Reroute the existing bent arrow from the webview_app() entry so it leads into the TOP of “程序 FIFO（有界）”, independently from WindowManager. Route this line through the available whitespace, going to the right of WindowManager, then down to the program FIFO. Do not cross any text or box interior. Preserve the arrow from application()/multi_window() to WindowManager.
+3. The black bidirectional line labelled “JS Bridge / 命令权限” currently ends at the top edge of the whole “窗口内容 · iced 合成” container. Extend/reroute its lower end so its arrowhead clearly touches the “CEF WebView widget” card itself, not the outer container. Keep its upper arrowhead touching the Web business card. Move the small label into available whitespace if needed to avoid crossing the content title.
+4. Make the downward arrow from the program FIFO toward “winit 主线程事件循环” unnecessary if it creates confusion; its rightward arrow into iced composition already communicates UI execution. Prefer retaining the existing rightward FIFO-to-iced arrow clearly. All other runtime and toolchain arrows remain as in the image.
+
+Do not redraw or change text. Do not add any new modules, headings, legend entries, extra arrows or decorations. Crisp legible final diagram, same landscape aspect ratio and at least the same resolution.
+
+FINAL CONNECTOR CORRECTION
+
+Refine ONLY TWO CONNECTOR ROUTES in this exact architecture image. Preserve all text, all boxes, all colors, all illustrations and positions.
+
+A) The webview_app() → program FIFO line currently runs exactly along the WindowManager right border, which makes the two mechanisms appear connected. Separate them clearly. Keep WindowManager's right border as its own closed outline. Route webview_app's line at least 35 pixels to the RIGHT of that border, through the whitespace before the lavender container. Turn left only in the horizontal whitespace BELOW WindowManager and ABOVE program FIFO, then enter the TOP of program FIFO with a down arrow. There must be a visible air gap between this route and WindowManager. Do not add any WindowManager→FIFO connector.
+
+B) The JS Bridge bidirectional connector currently passes through the “窗口内容 · iced 合成” heading. Remove that old connector. Instead, start at the RIGHT edge of the Web业务 green card, route horizontally right, then vertically DOWN just OUTSIDE the RIGHT edge of the lavender iced container, then turn LEFT into the RIGHT side of the CEF WebView widget card. Use arrowheads at the two ends (Web card and CEF widget). This path must never pass through any text or through the lavender title. Put “JS Bridge / 命令权限” neatly beside the exterior vertical segment, in the whitespace between the main runtime and orange toolchain. The small build-input orange arrow must remain distinct and unchanged.
+
+Everything else unchanged. Clean technical routing, no overlapping text or touching unrelated boxes.
+

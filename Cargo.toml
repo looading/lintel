@@ -1,0 +1,239 @@
+[package]
+name = "lintel"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+
+[workspace]
+resolver = "2"
+default-members = ["."]
+exclude = ["crates/lintel-build", "crates/lintel-cli", "crates/lintel-updater", "crates/lintel-desktop", "crates/lintel-crash", "crates/lintel-process", "vendor/iced", "vendor/iced/*"]
+members = [
+  "crates/lintel-core",
+  "crates/lintel-iced-widgets",
+  "crates/lintel-lib-config",
+  "crates/lintel-lib-crypto",
+  "crates/lintel-lib-env",
+  "crates/lintel-lib-event",
+  "crates/lintel-lib-iced",
+  "crates/lintel-lib-jsb-macro",
+  "crates/lintel-lib-store",
+  "crates/lintel-lib-utils",
+  "crates/lintel-plugin-iced",
+  "crates/lintel-plugin-iced-api",
+  "crates/lintel-shared-data",
+]
+
+[features]
+default = ["public-iced"]
+agent = ["dep:serde", "dep:serde_json"]
+public-iced = ["lintel-plugin-iced/public-iced", "lintel-iced-widgets?/public-iced"]
+# Compatibility feature name; both entry points use the same public CEF path.
+webview-cef = ["public-cef"]
+public-cef = [
+  "public-iced",
+  "dep:cef",
+  "dep:lintel-iced-widgets",
+  "lintel-iced-widgets/public-cef",
+  "dep:lintel-lib-env",
+  "dep:lintel-shared-data",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:tempfile",
+  "dep:tracing-subscriber",
+  "dep:url",
+]
+services = ["dep:reqwest", "dep:serde", "dep:serde_json", "dep:sha2", "dep:tracing-subscriber", "dep:tempfile", "dep:cap-std", "dep:url"]
+desktop = ["dep:lintel-desktop"]
+linux-tray = ["desktop", "lintel-desktop/linux-tray"]
+linux-x11-shortcuts = ["desktop", "lintel-desktop/linux-x11-shortcuts"]
+linux-portal-shortcuts = ["desktop", "lintel-desktop/linux-portal-shortcuts"]
+linux-desktop = ["linux-tray", "linux-x11-shortcuts", "linux-portal-shortcuts"]
+crash-reporting = ["dep:lintel-crash", "lintel-process?/crash-reporting"]
+updater = ["dep:lintel-updater"]
+sqlite = ["services", "dep:rusqlite"]
+multiprocess = ["dep:lintel-process"]
+
+[dependencies]
+anyhow.workspace = true
+directories.workspace = true
+global-hotkey.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+winit.workspace = true
+lintel-core.workspace = true
+lintel-lib-store.workspace = true
+lintel-lib-iced.workspace = true
+lintel-plugin-iced.workspace = true
+cef = { workspace = true, optional = true }
+lintel-iced-widgets = { workspace = true, optional = true }
+lintel-lib-env = { workspace = true, optional = true }
+tempfile = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+tracing-subscriber = { workspace = true, optional = true }
+lintel-shared-data = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+cap-std = { version = "4.0.3", optional = true }
+lintel-desktop = { version = "0.1.0", path = "crates/lintel-desktop", features = ["native"], optional = true }
+lintel-crash = { version = "0.1.0", path = "crates/lintel-crash", optional = true }
+lintel-updater = { version = "0.1.0", path = "crates/lintel-updater", optional = true }
+rusqlite = { version = "0.42.0", features = ["bundled", "hooks"], optional = true }
+lintel-process = { version = "0.1.0", path = "crates/lintel-process", default-features = false, optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2.workspace = true
+objc2-app-kit = { workspace = true, features = ["NSApplication", "NSEvent", "NSResponder"] }
+
+[dev-dependencies]
+tracing-subscriber.workspace = true
+url.workspace = true
+lintel-shared-data.workspace = true
+
+[[example]]
+name = "webview"
+path = "examples/webview.rs"
+required-features = ["public-cef"]
+
+[[example]]
+name = "webview_windows"
+path = "examples/webview_windows.rs"
+required-features = ["public-cef"]
+
+[[example]]
+name = "services"
+required-features = ["services"]
+
+[[example]]
+name = "client_menubar"
+required-features = ["desktop", "public-iced"]
+
+[[example]]
+name = "ai_native_app"
+required-features = ["agent", "services", "public-iced"]
+
+[[example]]
+name = "agent_tools"
+required-features = ["agent"]
+
+[workspace.dependencies]
+"lintel-core" = { path = "crates/lintel-core" }
+"lintel-lib-env" = { path = "crates/lintel-lib-env" }
+"lintel-plugin-iced-api" = { path = "crates/lintel-plugin-iced-api" }
+"lintel-plugin-iced" = { path = "crates/lintel-plugin-iced" }
+"lintel-lib-jsb-macro" = { path = "crates/lintel-lib-jsb-macro" }
+"lintel-lib-store" = { path = "crates/lintel-lib-store" }
+"lintel-lib-utils" = { path = "crates/lintel-lib-utils" }
+"lintel-lib-crypto" = { path = "crates/lintel-lib-crypto" }
+"lintel-lib-event" = { path = "crates/lintel-lib-event" }
+"lintel-lib-iced" = { path = "crates/lintel-lib-iced" }
+"lintel-lib-config" = { path = "crates/lintel-lib-config" }
+"lintel-iced-widgets" = { path = "crates/lintel-iced-widgets" }
+"lintel-shared-data" = { path = "crates/lintel-shared-data" }
+
+
+# Shared dependencies
+cef = "143"
+arc-swap = "1"
+cookie = "0.18"
+dashmap = "6"
+strum = "0.27"
+lazy_static = "1.5.0"
+tokio = { version = "1.41.1", features = ["tracing"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+uuid = "1.11.0"
+url = "2.3.1"
+sha2 = "0.10.9"
+anyhow = "1.0.93"
+cbor4ii = "0.3.3"
+directories = "6.0.0"
+muda = "0.15.3"
+rand = "0.8.5"
+serde = "1.0.215"
+serde_json = "1.0.134"
+thiserror = "2.0.3"
+tray-icon = "0.19.2"
+camino = "1"
+bytes = "1"
+chrono = "0.4.39"
+urlpattern = "0.3.0"
+parking_lot = { version = "0.12.3", features = ["deadlock_detection"] }
+serde_yml = "0.0.12"
+semver = "1.0"
+strum_macros = "0.27"
+once_cell = "1.19.0"
+# Linux CI 的系统 OpenSSL 可能低于 1.1.1，启用 vendored 避免 native-tls TLS1.3 API 编译失败。
+reqwest = { version = "0.12.5", features = ["json", "blocking", "native-tls-vendored"] }
+winit = "0"
+fs_extra = "1.3.0"
+libc = "0.2.174"
+either = "1"
+atomic-take = "1"
+scopeguard = "1"
+rkv = "0.20"
+aes-gcm = "0.10.3"
+hex = "0.4.3"
+aes = "0.8.4"
+global-hotkey = "0.7"
+os_info = "3"
+objc2 = "0.6"
+objc2-app-kit = "0.3.1"
+objc2-foundation = "0.3.1"
+objc2-quartz-core = "0.3"
+objc2-core-foundation = "0.3"
+serde_repr = "0.1.20"
+tokio-retry = "0.3.0"
+tempfile = "3.24.0"
+windows = { version = "0.58.0", features = [
+  "implement",
+  "Win32",
+  "Win32_UI",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_Graphics",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_HiDpi",
+  "Win32_UI_Shell",
+  "Win32_UI_Shell_Common",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_System",
+  "Win32_System_Threading",
+  "Win32_System_Time",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Com",
+  "Win32_System_Ole",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_SystemServices",
+  "Win32_System_DataExchange",
+  "Win32_System_Memory",
+  "Win32_Graphics_Imaging",
+  "Win32_Graphics_Dwm",
+  "Win32_System_Performance",
+] }
+windows-core = "0.58"
+
+[profile.dev.package.objc2]
+debug-assertions = false
+
+
+[profile.dev]
+panic = "abort"
+debug = 1
+
+[profile.release]
+lto = "thin"
+debug = false
+split-debuginfo = "off"
+strip = "debuginfo"
+
+[patch.crates-io]
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "48116469f15d3bc52b5e56bb516694be8882870d" }
+gpu-allocator = { git = "https://github.com/Traverse-Research/gpu-allocator.git", rev = "3d4466e3331c43d1f85b937b775427b07d7a32fe" }
+cef = { git = "https://github.com/tauri-apps/cef-rs.git", rev = "348fef293fd48b053b6157cecc3e05c36d71d0ca" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "a6d9d3254e8d5ed7de08634cd9ddd7b63956f7f3" }

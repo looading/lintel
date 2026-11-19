@@ -1,0 +1,31 @@
+{
+  "files": {
+    "Cargo.toml": "05d84d0727aeb770f7c4d7013ca6ed3a4a1f61c6b47a11190192523125e20bce",
+    "core/src/element.rs": "00286892538e5a3fd450e7dd5830017384aec985401158edf9d220229dc3aab8",
+    "core/src/event.rs": "05ba07e8857b5d70f2a7b23553bfbe6c5dff061a84c22a79fa618071e83578ba",
+    "core/src/keyboard/modifiers.rs": "311492aec797c74d05c5b3584527ba7187f6666a08e6a66ab25d073179534f3a",
+    "core/src/lib.rs": "085c692cda7c388d36c1274cab33060dfb4635b890b9e9aefdaaf3305ae19b84",
+    "core/src/mouse/interaction.rs": "ef53fb58a8dd307b6b7cb84307fd44d04c70c17dc6ae8c5f1971d2c9c82253d7",
+    "core/src/overlay/element.rs": "8894808c88dfc9c23c2f3aca566faefe0b1f30337dc9ad9f94d17a54cb9c0a68",
+    "core/src/shell.rs": "32183a604a9fc52a56f51d0d14f9fa0d0e1b1f38b723ece4b28a45a0e38f1b9d",
+    "examples/integration/src/main.rs": "c05b3c4c1a7a1cef291158a75f350a3007da2e303332f1b0ce1945ed5f7c94a4",
+    "examples/toast/src/main.rs": "7430e0f3471585a82bef037919c14ee77b77022b4d8ea38d2e9518d2e59498f4",
+    "runtime/src/lib.rs": "a6b64b3378ebdbaec8958812b7e756f345e13c7d1d605e58acbd334bd9f7f815",
+    "runtime/src/user_interface.rs": "7a50caa1823a10a1fe5b691064343cd010cf6df1c4d192c48b3045aeed61484b",
+    "runtime/src/window.rs": "6eb3444ff28d401d82fd2d4736e35810f3adc9c8bfbdb122789cb63dede4122e",
+    "src/error.rs": "b992bc998d20ba9d7791dd68d68cc2230f3b26a9bc8a8402a3b2579be61da81c",
+    "test/src/emulator.rs": "b7e2e5723897e2cd993eab6bcebcad158fea6308e0f4f4181c1e2d657b8f1d22",
+    "test/src/simulator.rs": "f85948d4585ecf818ebb5707ff82ff2897571936826310c2cac977569970d895",
+    "wgpu/src/window/compositor.rs": "08dfcea66f7327f2d1dd3d2dd38f1f78f6ff1b7292dafa5153ddb6cbb73ba3cc",
+    "widget/src/combo_box.rs": "11e261999a1dbbb60a05237ab53c4cc418290dafc222422c4eabc2586f20a888",
+    "widget/src/lazy/component.rs": "1630ab120af190c36895a5291b516ca7595fa4100525b7486acfa66a49dc6a81",
+    "winit/src/conversion.rs": "1fc10ec2c36a8f9ee8d417bc699188c2a313f66635fc37f21d266547216eff69",
+    "winit/src/error.rs": "11676de401c431af81f033963e910ad22f7c692606d6a718a44ca024ed6eb38a",
+    "winit/src/lib.rs": "20711280ef76c992af436839ff17d1fa31e0bc0b1d0ad64306284ee179200292",
+    "winit/src/native_window.rs": "918b3408c09e5a4ddb3090846c970501a1e1061738a6b1e75b4ab1c4df00d538",
+    "winit/src/window.rs": "ebc4827cb8c1c540c01413f6b4a2a8d0c4f3235acda7f63719642bb029d69748"
+  },
+  "patch_sha256": "7dac2e2eeb1e17feb284e070471a446304b2eae0b7ac95fcf82eea3b78a288e1",
+  "revision": "90037336e80f02b817f2f68a5adf877bdb85639a",
+  "source": "https://github.com/iced-rs/iced.git"
+}

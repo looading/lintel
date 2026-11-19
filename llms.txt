@@ -1,0 +1,41 @@
+# Lintel
+
+> Rust desktop framework with a small public facade, native iced UI, embedded CEF WebViews, managed windows and optional services. Reuses the extracted implementation and dependencies.
+
+## Read first
+- [Project and quick starts](README.md)
+- [Repository working rules](AGENTS.md)
+- [Machine-readable framework catalog](lintel.project.json)
+- [Implemented capabilities and platform limits](docs/capabilities.md)
+- [Runtime, plugins, queues and task ownership](docs/runtime.md)
+- [AI development and application contract](docs/ai-native.md)
+
+## Application paths
+- Native UI: `lintel::application` / `lintel::multi_window`, typed State/Message/update/view.
+- Contextual native startup: `application_with_context` / `multi_window_with_context`, fallible initialization after services start.
+- Web UI: `lintel::webview_app`, embedded pages and typed/async commands.
+- Optional agent tools: feature `agent`; provider-neutral tool catalog, explicit grants, typed handlers, bounded progress and scoped cancellation.
+- [Context initialization](docs/context-initialization.md)
+- [Application agent tools](docs/agent-tools.md)
+- [Native service API](crates/lintel-desktop/README.md)
+- [Menu accessibility](docs/menu-accessibility.md)
+
+## Tooling and delivery
+- `lintel describe --json` emits the embedded schema-versioned project catalog. It does not probe the machine, build, download or execute application content.
+- `lintel new` creates a portable consumer project with its own agent entry notes.
+- [CLI discovery contract](docs/cli-describe.md)
+- [Windows portable bundles](docs/windows-bundles.md)
+- [Signed offline distribution](docs/windows-distribution.md)
+- [Signed updater](docs/updater.md)
+
+## Constraints
+- Enable only the needed features. Keep business code on the public facade.
+- Hosted/native callbacks are bounded and do not execute UI business code on arbitrary threads.
+- Code availability, model tests, cross-target checks and native acceptance are different claims.
+- Windows CEF native sandbox/bootstrap execution remains gated; do not infer it from API_ONLY.
+- Agent discovery is not execution permission. No model vendor, network transport or shell is connected by default.
+- AI Dev Loop is disabled unless explicitly requested. Ignore dependency caches and historical probes during code discovery.
+
+- [Multi-process services](docs/multiprocess.md): optional Mojo SDK, typed workers, builder lifecycle and CLI packaging.
+
+- [WebView service integration](docs/webview-services.md): weak page command context, browser-only initialization and typed Mojo worker calls.

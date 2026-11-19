@@ -1,0 +1,44 @@
+[package]
+name = "lintel-core"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+directories.workspace = true
+lintel-lib-utils.workspace = true
+rand.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true
+lintel-lib-config.workspace = true
+serde_json.workspace = true
+parking_lot.workspace = true
+lintel-lib-store.workspace = true
+global-hotkey.workspace = true
+open = { version = "5.3.2", features = ["shellexecute-on-windows"] }
+lintel-lib-iced.workspace = true
+winit.workspace = true
+
+[target.'cfg(target_os = "windows")'.dependencies]
+widestring = "1.0"
+windows = { workspace = true, features = [
+  "Win32",
+  "Win32_Foundation",
+  "Win32_System",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_Threading",
+  "Win32_System_Time",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc.workspace = true
+plist = "1"
+
+[dev-dependencies]
+tracing-subscriber = "0.3.18"
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+muda.workspace = true
+tray-icon.workspace = true

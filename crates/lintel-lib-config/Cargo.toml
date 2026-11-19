@@ -1,0 +1,18 @@
+[package]
+name = "lintel-lib-config"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+lazy_static.workspace = true
+once_cell.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_yml.workspace = true
+strum = { workspace = true, features = ["derive"] }
+strum_macros.workspace = true
+tracing.workspace = true
+url.workspace = true
+urlpattern.workspace = true
+uuid.workspace = true
+lintel-lib-event.workspace = true

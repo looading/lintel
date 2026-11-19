@@ -1,0 +1,79 @@
+[package]
+name = "lintel-iced-widgets"
+version.workspace = true
+edition = "2024"
+
+[features]
+default = ["public-iced", "public-cef"]
+public-cef = []
+public-iced = []
+
+[dependencies]
+lintel-lib-iced.workspace = true
+lintel-lib-env.workspace = true
+tokio.workspace = true
+atomic_refcell = "0"
+tracing.workspace = true
+anyhow.workspace = true
+atomic-take.workspace = true
+serde_json.workspace = true
+tokio-stream = "0"
+camino.workspace = true
+futures = "0.3"
+time = "0.3"
+serde = { workspace = true, features = ["derive"] }
+url.workspace = true
+unicode-segmentation = "1"
+thiserror.workspace = true
+either.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+scopeguard.workspace = true
+bytes.workspace = true
+cookie.workspace = true
+lintel-lib-utils.workspace = true
+winit.workspace = true
+bytemuck = "1"
+prost = "0.14.1"
+lintel-shared-data = { path = "../lintel-shared-data" }
+semver.workspace = true
+reqwest.workspace = true
+serde_repr.workspace = true
+once_cell.workspace = true
+os_info.workspace = true
+arc-swap.workspace = true
+tokio-retry.workspace = true
+lyon_algorithms = "1"
+postcard = { version = "1", features = ["use-std"] }
+dashmap.workspace = true
+lintel-lib-jsb-macro.workspace = true
+
+[target.'cfg(target_os = "windows")'.dependencies]
+cef = { workspace = true, features = ["accelerated_osr"] }
+windows = { workspace = true, features = ["Win32_System_Environment"] }
+windows-core.workspace = true
+windows-strings = "0.5"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cef = { workspace = true, features = ["accelerated_osr"] }
+objc2.workspace = true
+objc2-app-kit = { workspace = true, features = [
+  "NSView",
+  "NSWindow",
+  "NSApplication",
+  "NSEvent",
+  "NSDragging",
+  "NSDraggingItem",
+  "NSDraggingSession",
+  "NSPasteboard",
+  "NSPasteboardItem",
+  "NSImage",
+] }
+objc2-core-foundation.workspace = true
+objc2-quartz-core.workspace = true
+objc2-foundation = { workspace = true, features = [
+  "NSArray",
+  "NSString",
+  "NSGeometry",
+  "NSURL",
+  "NSData",
+] }

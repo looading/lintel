@@ -1,0 +1,35 @@
+[package]
+name = "lintel-updater"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Signed application updates for Lintel desktop apps"
+
+[workspace]
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+ed25519-dalek = "2"
+flate2 = "1"
+getrandom = "0.3"
+lintel-build = { version = "0.1.0", path = "../lintel-build" }
+semver = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tar = "0.4"
+tempfile = "3.24"
+tokio = { version = "1", features = ["rt", "macros"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+plist = "1.8"
+
+[target."cfg(windows)".dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
+windows-permissions = "0.2.4"
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_Globalization", "Win32_System_Com", "Win32_System_RestartManager", "Win32_System_Pipes", "Win32_System_IO"] }
+
+[target."cfg(not(windows))".dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

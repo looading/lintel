@@ -1,0 +1,12 @@
+[package]
+name = "lintel-shared-data"
+version.workspace = true
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+bytes.workspace = true
+prost = "0.14.1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+lintel-lib-utils.workspace = true

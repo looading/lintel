@@ -1,0 +1,19 @@
+[package]
+name = "lintel-plugin-iced"
+version.workspace = true
+edition = "2024"
+
+[features]
+default = ["public-iced"]
+debug = ["lintel-lib-iced/debug"]
+public-iced = []
+
+[dependencies]
+lintel-core.workspace = true
+lintel-lib-iced.workspace = true
+lintel-plugin-iced-api.workspace = true
+winit.workspace = true
+tokio.workspace = true
+tokio-stream = { version = "0.1", features = ["sync"] }
+global-hotkey.workspace = true
+tracing.workspace = true

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src file: 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>Lintel WebView Services</title>
+  <script src="lintel.js"></script>
+  <style>
+    body { margin:0; padding:40px; background:#edf5f2; color:#12342a; font:18px system-ui; }
+    main { max-width:660px; padding:28px; background:white; border:1px solid #b0c9be; border-radius:12px; }
+    h1 { margin:0 0 16px; }
+    input,button { font:inherit; padding:8px 12px; }
+    button { cursor:pointer; }
+    output { display:block; min-height:24px; margin-top:20px; font-weight:600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Lintel WebView Services</h1>
+    <p>This local page calls a typed Echo service in an independent process.</p>
+    <form>
+      <label for="message">Message</label>
+      <input id="message" value="Hello from WebView">
+      <button type="submit">Call service</button>
+    </form>
+    <output id="reply" aria-live="polite">Waiting for service…</output>
+  </main>
+  <script>
+    const form = document.querySelector('form');
+    const reply = document.querySelector('#reply');
+    async function echo() {
+      const [text, pid] = await lintel.invoke('echo', document.querySelector('#message').value);
+      reply.textContent = `${text} · service PID ${pid}`;
+      return [text, pid];
+    }
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      echo().catch(error => { reply.textContent = error.message; });
+    });
+    addEventListener('load', async () => {
+      try {
+        const result = await echo();
+        if (await lintel.invoke('demo.smoke', null)) await lintel.invoke('demo.complete', result);
+      } catch (error) {
+        reply.textContent = error.message;
+        if (await lintel.invoke('demo.smoke', null)) await lintel.invoke('demo.complete', ['', 0]);
+      }
+    });
+  </script>
+</body>
+</html>
