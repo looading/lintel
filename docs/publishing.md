@@ -77,6 +77,10 @@ Only explicitly listed development dependencies may be omitted. The process test
 
 All other internal dev dependencies participate in the publication order. `cargo package` still resolves them from the registry, even when verification does not compile the tests. For example, the WGPU HAL dev dependency on Winit requires `lintel-winit` to be published first. The planner rejects remaining cycles rather than guessing which test dependencies to discard; any additional omission must be supplied explicitly and reviewed.
 
+## Compatible generated APIs
+
+Linux desktop services retain the verified `zbus 5.12.0` runtime. Its caret dependency on `zbus_macros` can select a newer macro that emits runtime types absent from that version. The desktop manifest therefore constrains the normal Unix macro dependency to the verified `5.13.2`. This constraint is part of the published dependency graph, rather than a maintainer-only lock or patch. Check a freshly resolved Linux graph when changing this pair.
+
 ## Plan and stage
 
 Python 3.11 or newer is required for `tomllib`. First inspect the complete plan:

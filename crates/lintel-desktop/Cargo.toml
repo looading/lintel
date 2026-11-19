@@ -89,6 +89,8 @@ ksni = { version = "0.3.7", default-features = false, features = ["async-io"], o
 rustix = { version = "1", features = ["process", "fs"] }
 x11rb = { version = "0.13", optional = true }
 zbus = { version = "=5.12.0", default-features = false, features = ["async-io"], optional = true }
+# 固定运行时依赖的宏 ABI，防止新宏生成旧运行时不存在的类型。
+zbus_macros = "=5.13.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3.6", default-features = false, features = ["sync-secret-service", "crypto-rust", "vendored"], optional = true }
