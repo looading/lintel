@@ -2,6 +2,21 @@
 
 This optional standalone crate installs Embark's `crash-handler` before the UI starts and asks a separate `minidumper` helper process to write a local native minidump. It contains no upload transport and does not depend on Lintel's UI, CEF, or internal SDKs.
 
+```toml
+[dependencies]
+lintel-crash = "0.1.0"
+```
+
+Install the standalone helper for the application's target architecture:
+
+```sh
+cargo install lintel-crash --version 0.1.0 --locked --bin lintel-crash-helper
+```
+
+The default install exposes only the helper. The deliberate abort probe and its
+isolation tests require the explicit `test-capture` feature and are not selected
+by a normal install or default test run.
+
 ```rust,no_run
 use lintel_crash::{CrashConfig, CrashReporter};
 
@@ -40,4 +55,7 @@ The IPC endpoint is fresh for every app instance, lives in a private temporary d
 
 The implementation follows the [upstream crash-handler callback contract](https://github.com/EmbarkStudios/crash-handling/blob/main/crash-handler/src/lib.rs) and [minidumper IPC client/server example](https://github.com/EmbarkStudios/crash-handling/blob/main/minidumper/examples/diskwrite.rs). Consult the [upstream supported target matrix](https://github.com/EmbarkStudios/crash-handling#supported-targets) before enabling the feature on a new architecture. On Linux the reporter restricts ptrace permission to its helper process. macOS distribution signing and sandbox entitlements must allow the bundled helper to receive the crash context; validate the final signed bundle on its target OS.
 
-Run `cargo test --manifest-path crates/lintel-crash/Cargo.toml` to launch the isolated `lintel-crash-probe` child. The explicit `--abort` child fixture produces a real native crash; the test host never installs a crash hook or aborts. Tests check the completed dump's header, bounded stream directory, exception context, thread/module/system streams, private file permissions, normal helper reaping, and startup-failure cleanup.
+Run `cargo test --manifest-path crates/lintel-crash/Cargo.toml --features test-capture --test isolation` to launch the isolated `lintel-crash-probe` child. The explicit `--abort` child fixture produces a real native crash; the test host never installs a crash hook or aborts. Tests check the completed dump's header, bounded stream directory, exception context, thread/module/system streams, private file permissions, normal helper reaping, and startup-failure cleanup. Ordinary library tests remain available without this opt-in.
+
+First-party code is licensed under MIT. See [LICENSE](LICENSE); upstream crash
+handling and minidump dependencies retain their own licenses.

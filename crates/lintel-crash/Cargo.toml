@@ -2,9 +2,14 @@
 name = "lintel-crash"
 version = "0.1.0"
 edition = "2024"
-publish = false
-license = "MIT OR Apache-2.0"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
 description = "Local out-of-process native crash capture for Lintel applications"
+readme = "README.md"
+documentation = "https://docs.rs/lintel-crash"
+include = ["Cargo.toml", "README.md", "LICENSE", "src/**", "tests/**"]
+autobins = false
+autotests = false
 
 [workspace]
 
@@ -18,6 +23,17 @@ path = "src/bin/helper.rs"
 [[bin]]
 name = "lintel-crash-probe"
 path = "src/bin/probe.rs"
+required-features = ["test-capture"]
+
+[[test]]
+name = "isolation"
+path = "tests/isolation.rs"
+required-features = ["test-capture"]
+
+[features]
+default = []
+# Deliberate child-process abort probes are never part of a default install or test run.
+test-capture = []
 
 [dependencies]
 anyhow = "1"
