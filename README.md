@@ -10,7 +10,7 @@ Lintel 是一个基于 Rust、winit、iced 和 CEF 的桌面应用框架，提�
 
 ## crates.io 包名
 
-框架的注册表包名为 `lintel-framework`，Rust 库和业务代码中的接入名为 `lintel`：
+框架的注册表包名为 `lintel-framework`，Rust 库和业务代码中的接入名为 `lintel`。首次发布仍在进行，主包需等待依赖链发布完成后才能从 crates.io 安装；当前可按下文从源码使用。发布完成后的依赖声明为：
 
 ```toml
 [dependencies]
@@ -58,7 +58,7 @@ lintel --help
 
 CLI 使用独立的 Cargo 锁文件。从源码安装时会把原生模板、混合模板以及公开依赖配置下的框架源码装入 Rust 二进制。安装后的 `lintel new` 可直接从空目录运行，生成应用通过项目内的 `.lintel/framework` 相对路径使用随包源码。应用继续使用框架锁定的 Rust 工具链，并从公开 Git 仓库和 crates.io 解析第三方依赖。需要用某个本地 checkout 开发框架时，可显式传 `lintel new --lintel-path /path/to/lintel`。
 
-便携源码包保留 iced 的上游许可证。CEF 打包会从官方分发目录或已校验的下载归档复制许可和第三方声明文件。当前 Lintel 本身尚未指定公开发行许可证，这套产物用于本地验证公开依赖和可移植构建。
+便携源码包保留 iced 的上游许可证。CEF 打包会从官方分发目录或已校验的下载归档复制许可和第三方声明文件。Lintel 自有代码使用 [MIT 许可证](LICENSE)，复用组件保留各自的上游许可证与声明。
 
 ## 新建原生应用
 

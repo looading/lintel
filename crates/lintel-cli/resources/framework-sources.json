@@ -104,7 +104,9 @@
     "templates/webview-multiprocess/ui/index.html",
     "templates/windows-webview/src/lib.rs",
     "templates/windows-webview/ui/index.html",
-    "templates/windows-webview/WINDOWS-CEF.md"
+    "templates/windows-webview/WINDOWS-CEF.md",
+    "docs/publishing.md",
+    "scripts/registry-release.py"
   ],
   "resource_trees": [
     "crates/lintel-build/resources"

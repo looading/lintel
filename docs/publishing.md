@@ -180,3 +180,28 @@ The release operator then runs Cargo from the stage, not from the development ch
 `plan.json` gives the publication order, including normal, build and non-omitted dev dependencies on all declared targets and optional capabilities. Root workspace commands alone do not cover the development checkout's separate desktop/platform, process, build, crash, updater and CLI workspaces; the staged plan explicitly contains them.
 
 Use local patches only for pre-publication checks. After prerequisites are registered, verify the final package against the actual registry graph before publishing it. Publish functional prerequisites in the plan order, wait for each required version to become resolvable, and publish `lintel-framework` after its complete dependency closure. Publish the CLI after its generator archive and dependency versions are ready. Credentials and publishing commands remain the release operator's responsibility; the staging script never reads or sends them.
+
+
+## First release status — 2026-11-19 13:46 UTC
+
+The repository source is committed on `main`. The first registry release is incomplete because crates.io is rate-limiting creation of new packages. The server accepted another package at 13:44 UTC and returned a new HTTP 429 deadline of **2026-11-19 13:54:48 UTC** for the next new package. Do not treat the staged framework as an already published version.
+
+The following versions have been published:
+
+| Package | Version |
+| --- | --- |
+| `lintel-build` | `0.1.0` |
+| `lintel-crash` | `0.1.0` |
+| `lintel-lib-event` | `0.1.0` |
+| `lintel-lib-env` | `0.1.0` |
+| `lintel-lib-crypto` | `0.1.0` |
+| `lintel-lib-jsb-macro` | `0.1.0` |
+| `lintel-lib-config` | `0.1.0` |
+| `lintel-lib-store` | `0.1.0` |
+| `lintel-iced-core` | `0.15.0-dev` |
+| `lintel-winit` | `0.30.13` |
+| `lintel-accesskit-winit` | `0.34.0` |
+
+The complete graph is 49 framework packages, or 50 including the CLI. `lintel-framework 0.1.0` and `lintel-cli 0.1.0` are still pending. Local checks of staged or extracted packages use explicit local patches until the remaining versions are available. They validate packaging and type compatibility; they do not replace a clean installation from crates.io.
+
+Resume from the recorded publication order after the registry deadline or after an account rate-limit increase. Confirm each already published version in the registry, skip it, and continue with the first missing prerequisite. Keep source archives, SDKs, credentials and local receipts outside the repository. Regenerate package archives against the actual registry graph before each upload. No release tag has been created while the main package is pending.
