@@ -280,6 +280,10 @@ mod macos {
   }
 
   fn validate_template_name(name: &str, template: ProjectTemplate) -> Result<()> {
+    ensure!(
+      name != "lintel-framework",
+      "application name {name:?} conflicts with the framework package; choose a different directory name such as my-app"
+    );
     if template.has_multiprocess() {
       ensure!(
         !["lintel-worker", "lintel-app-protocol"].contains(&name),
@@ -758,6 +762,58 @@ mod macos {
           .unwrap()
           .contains("multiprocess")
       );
+    }
+
+    #[test]
+    fn framework_package_name_is_rejected_by_all_starters_without_publishing_or_changing_an_empty_directory() {
+      for template in [
+        ProjectTemplate::Native,
+        ProjectTemplate::Multiprocess,
+        ProjectTemplate::Webview,
+        ProjectTemplate::WebviewMultiprocess,
+        ProjectTemplate::WindowsWebview,
+      ] {
+        for existing in [false, true] {
+          let root = tempfile::tempdir().unwrap();
+          let destination = root.path().join("lintel-framework");
+          if existing {
+            fs::create_dir(&destination).unwrap();
+          }
+          let assert_not_published = || {
+            assert_eq!(destination.exists(), existing);
+            if existing {
+              assert_eq!(fs::read_dir(&destination).unwrap().count(), 0);
+            }
+            assert!(fs::read_dir(root.path()).unwrap().all(|entry| {
+              !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".lintel-project-")
+            }));
+          };
+          let error = create_project(&destination, template, Some(&root.path().join("missing-checkout"))).unwrap_err();
+          assert!(format!("{error:#}").contains("conflicts with the framework package"));
+          assert_not_published();
+          #[cfg(feature = "portable")]
+          {
+            let starter = EmbeddedStarter {
+              rust_source: "fn main() {}",
+              html: template.has_webview().then_some("<html></html>"),
+              framework_archive: b"invalid archive must not be opened for a reserved application name",
+            };
+            let error = create_portable_project(&destination, template, &starter).unwrap_err();
+            assert!(format!("{error:#}").contains("conflicts with the framework package"));
+            assert_not_published();
+          }
+          for name in ["my-app", "lintel", "lintel-framework-app", "app-lintel-framework"] {
+            assert!(
+              validate_template_name(name, template).is_ok(),
+              "unexpectedly rejected {name}"
+            );
+          }
+        }
+      }
     }
 
     #[test]
