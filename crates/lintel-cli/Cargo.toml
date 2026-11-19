@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/looading/lintel"
 readme = "resources/README.md"
 include = [
-  "Cargo.toml", "Cargo.lock", "build.rs", "source_policy.rs", "src/**",
+  "Cargo.toml", "Cargo.lock", "LICENSE", "build.rs", "source_policy.rs", "src/**",
   "resources/README.md", "resources/LICENSE", "resources/framework-sources.json",
   "resources/prepare-release.py", "resources/lintel-framework.tar.gz", "resources/lintel-framework.sha256",
 ]
