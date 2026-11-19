@@ -1,7 +1,13 @@
 [package]
 name = "lintel-lib-event"
-version.workspace = true
+version = "0.1.0"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
+description = "Thread-safe event subscriptions and owned callback dispatch for Lintel applications"
+readme = "README.md"
+documentation = "https://docs.rs/lintel-lib-event"
+include = ["Cargo.toml", "README.md", "LICENSE", "src/**"]
 
 [dependencies]
 anyhow.workspace = true

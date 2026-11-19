@@ -1,7 +1,13 @@
 [package]
 name = "lintel-lib-env"
-version.workspace = true
+version = "0.1.0"
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/looading/lintel"
+description = "Explicit process-wide application paths and environment settings for Lintel"
+readme = "README.md"
+documentation = "https://docs.rs/lintel-lib-env"
+include = ["Cargo.toml", "README.md", "LICENSE", "src/**"]
 
 [dependencies]
 semver = "1"
