@@ -14,12 +14,15 @@ use std::{
     mpsc,
   },
   thread,
-  time::{Duration, Instant},
+  time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result, ensure};
 use crash_handler::{CrashEventResult, CrashHandler};
 use minidumper::{Client, LoopAction, MinidumpBinary, Server, ServerHandler, SocketName};
+
+mod snapshot;
+pub use snapshot::{SnapshotError, capture_snapshot, capture_snapshot_until, snapshot_helper_entry};
 
 pub const HELPER_SWITCH: &str = "--lintel-crash-helper";
 const AUTHENTICATE: u32 = 1;
@@ -441,17 +444,18 @@ fn run_helper(endpoint: PathBuf, directory: PathBuf, token: [u8; TOKEN_BYTES], t
       let _ = std::io::stdin().read(&mut byte);
       control_shutdown.store(true, Ordering::Release);
     })?;
-  let started = Arc::new(Mutex::new(None::<Instant>));
+  let started = Arc::new(Mutex::new(None::<DumpStart>));
   let watcher_started = started.clone();
   let watcher_shutdown = shutdown.clone();
   thread::Builder::new()
     .name("lintel-crash-deadline".into())
     .spawn(move || {
       while !watcher_shutdown.load(Ordering::Acquire) {
-        if watcher_started
-          .lock()
-          .is_ok_and(|started| started.is_some_and(|started| started.elapsed() > timeout))
-        {
+        if watcher_started.lock().is_ok_and(|started| {
+          started
+            .as_ref()
+            .is_some_and(|started| started.instant.elapsed() > timeout)
+        }) {
           // This is the isolated helper process, never the monitored application.
           std::process::exit(3);
         }
@@ -479,8 +483,22 @@ struct DumpHandler {
   token: [u8; TOKEN_BYTES],
   authenticated: AtomicBool,
   shutdown: Arc<AtomicBool>,
-  started: Arc<Mutex<Option<Instant>>>,
+  started: Arc<Mutex<Option<DumpStart>>>,
 }
+
+struct DumpStart {
+  instant: Instant,
+  captured_at_unix_ms: Option<u64>,
+}
+
+fn write_capture_time(directory: &Path, captured_at: u64) -> Result<()> {
+  let mut sidecar = tempfile::NamedTempFile::new_in(directory)?;
+  serde_json::to_writer(&mut sidecar, &serde_json::json!({"captured_at_unix_ms": captured_at}))?;
+  sidecar.as_file().sync_all()?;
+  sidecar.persist(directory.join("capture.json"))?;
+  Ok(())
+}
+
 impl ServerHandler for DumpHandler {
   fn create_minidump_file(&self) -> std::io::Result<(File, PathBuf)> {
     if !self.authenticated.load(Ordering::Acquire) {
@@ -489,10 +507,18 @@ impl ServerHandler for DumpHandler {
         "unauthenticated crash client",
       ));
     }
+    let instant = Instant::now();
+    let captured_at_unix_ms = SystemTime::now()
+      .duration_since(UNIX_EPOCH)
+      .ok()
+      .and_then(|elapsed| u64::try_from(elapsed.as_millis()).ok());
     *self
       .started
       .lock()
-      .map_err(|_| std::io::Error::other("dump deadline lock poisoned"))? = Some(Instant::now());
+      .map_err(|_| std::io::Error::other("dump deadline lock poisoned"))? = Some(DumpStart {
+      instant,
+      captured_at_unix_ms,
+    });
     let path = self.directory.join("report.dmp");
     Ok((private_file(&path)?, path))
   }
@@ -502,6 +528,15 @@ impl ServerHandler for DumpHandler {
       dump.file.flush()?;
       dump.file.sync_all()?;
       ensure!(dump.file.metadata()?.len() >= 32, "native minidump is truncated");
+      let captured_at = self
+        .started
+        .lock()
+        .ok()
+        .and_then(|started| started.as_ref().and_then(|started| started.captured_at_unix_ms));
+      if let Some(captured_at) = captured_at {
+        // Optional metadata must not keep an otherwise complete dump from being published.
+        let _ = write_capture_time(&self.directory, captured_at);
+      }
       write_private(&self.directory.join("completed"), b"lintel-native-crash-v1\n")
     });
     if let Err(error) = result {

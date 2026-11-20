@@ -20,7 +20,7 @@ lintel::application(State::default, update, view)
     .run()
 ```
 
-桌面服务通过可选的 `desktop` feature 编译。`services` 提供配置、文件、网络和诊断插件，`sqlite` 增加 SQLite，`crash-reporting` 增加原生崩溃捕获，`agent` 增加应用授权的工具执行。已有原生与混合模板保持最小的默认运行路径。
+桌面服务通过可选的 `desktop` feature 编译。`services` 提供配置、文件、网络和诊断插件，`sqlite` 增加 SQLite，`crash-reporting` 增加原生崩溃捕获，`crash-reports` 提供快照、报告查询和上传策略，`agent` 增加应用授权的工具执行。已有原生与混合模板保持最小的默认运行路径。
 
 需要在启动状态中取得服务时，使用 `application_with_context` 或 `multi_window_with_context`。初始化接收已经完成插件启动的 AppContext，可返回错误；成功后才提交程序，失败沿原有清理路径返回原错误。旧入口继续保留。详见[上下文启动](context-initialization.md)。
 
@@ -38,6 +38,7 @@ lintel::application(State::default, update, view)
 | 持久化 | 原 Store schema/迁移错误传播；SQLite 串行访问和事务迁移；Keychain、Credential Manager、Linux Secret Service 凭据后端。 | schema、失败保留数据、数据库事务、临时 Keychain roundtrip；Linux 会话仍待验收。 |
 | 网络与下载 | `NetworkClient` 提供请求来源约束、代理、超时、有界重试、大小限制和进度。先校验 SHA-256 再替换目标，取消清理临时文件。 | 本地 HTTP 夹具验证跳转拒绝、哈希错误、超限、取消、IPv6 loopback 显式授权。 |
 | 诊断与崩溃 | 轮转日志、字段脱敏、UI 心跳、显式导出；原生 Embark 与 CEF Crashpad 两个可选后端，CEF 沙箱子进程由官方 handler 捕获。 | 原生 abort、真实 renderer MDMP、CEF dump 导出、私有目录、记录/字节预算及正常退出。 |
+| 崩溃报告插件 | `crash-reports` 提供 `CrashReports` 服务，导入已完成的报告并按应用策略由独立进程上传。macOS arm64 原生宿主可按需抓取非致命快照。 | 分别检查报告导入和队列、上传进程恢复、快照与致命捕获、成品签名和实际运行。见[崩溃报告插件](#崩溃报告插件)。 |
 | 权限 | 窗口主体命令授权、文件目录 capability、`NetworkClient` origin 约束；四类系统权限共用 `support/status/request`。 | 跨主体/主 frame/大小检查、符号链接边界、导航撤销；四项系统状态被动真机查询，申请由业务显式触发。 |
 | 插件 | `on_start` 可失败并兼容旧 `on_init`，启动前检查名称，回滚和停止只执行一次。回调在管理锁外运行，插件可以安全查询其他服务。 | 重名、部分启动、失败回滚、重复和并发关闭、服务 getter 重入测试。 |
 | 多进程业务服务 | 可选 `multiprocess`，复用 Mojo SDK 0.3.0：typed 服务目录/调用、专用监管线程、默认拒绝授权、就绪/有限重启/健康策略、退出回收；CLI 构建并打包声明的服务与显式原生库。 | 默认 31 项、启用服务 crash reporting 34 项运行时回归；typed connect+bind 保留 generation，目录竞争立即拒绝，构建前检查所有服务声明。macOS 实机验证原生与 CEF/JS 联合运行、多窗口取消重开、重启重连、5 次合成回读及完整回收。首批重定位、超时额度、动态 Add-Stop 与父进程异常退出证据保留。Windows/Linux 仅目标检查；压力示例隔离系统钥匙串。独立服务不等于 OS 沙箱，CEF 子进程继续由 CEF 管理。 |
@@ -136,6 +137,20 @@ lintel bundle --crash-reporter --protocol-scheme notes --sign -
 Mojo 业务服务通过独立的 `CrashReportingWorker` 显式安装原生捕获，报告增加服务 identity 和监管 attempt；CLI 使用 `--worker-crash-helper PATH` 打包独立角色，可与浏览器 CEF Crashpad 并存。默认模板不启用，配置见[服务崩溃报告](multiprocess.md#服务崩溃报告)。
 
 诊断配置的 `crash_directory` 可显式授权原生报告目录或 CEF Crashpad 根目录。导出仅包含批准的报告文件，限制为最多 16 条记录及 `max_crash_bytes`，CEF 只从 pending/completed 读取 UUID 命名的 MDMP 普通文件。日志字段脱敏不会改写二进制 dump，报告是否分享由应用决定。示例见 [diagnostic_export.rs](../examples/diagnostic_export.rs)。
+
+## 崩溃报告插件
+
+启用 `crash-reports` 后，原生单窗口、多窗口、WebView 和 `AppBuilder` 都通过 `.crash_reports(config)` 注册服务。应用在启动后从 `AppContext` 取得 `lintel::crash_reports::CrashReports`。在受管的异步任务中，可以用 `capture_now()` 生成快照、用 `list_reports(query)` 分页查询报告，并用 `status(id)` 查看状态。`request_upload(id)` 持久记录发送意图。收到并保存接收端回执后，状态才会变为 `Uploaded`。见 [crash_reports.rs](../examples/crash_reports.rs)。
+
+`CrashReportsConfig` 负责选择宿主捕获后端并授权报告目录。原生宿主和 Mojo worker 使用各自的本地捕获助手，CEF 继续使用 bundle 内的 Crashpad 配置。插件可读取应用授权的 worker 报告目录，worker 仍需自行启用捕获。macOS arm64 原生宿主可以在关闭致命捕获时单独开启非致命快照。CEF 和 Mojo worker 可导入致命报告，手动快照范围限于 macOS arm64 原生宿主。
+
+上传策略默认是 `ManualOnly`，应用可用 `set_upload_policy(policy)` 更新，用 `upload_policy()` 查询。`Disabled` 会暂停发送。`Automatic` 按配置的来源和报告类型发送，历史报告默认留在本地。接收端由应用在启动时配置，使用 HTTPS。每次提交包含固定的 `metadata` 与 `dump`，上传进程用稳定的 `Idempotency-Key` 重试，并校验接收端回执。主应用退出后，上传进程可在有限时间内继续处理已授权的报告，未确认的请求留待下次运行。
+
+`config.reports.policy` 为新队列或新接收端设定起始策略。同一接收端重启后沿用已保存的设置。应用在启动配置中显式指定 `Disabled` 时，会覆盖已保存的发送授权。更换接收端时，原接收端的待发送请求与回执仍保留在原接收端名下。
+
+需要上传时，构建 `lintel-crash-reports` 的 `lintel-crash-uploader`，将可执行文件交给 `--crash-uploader PATH`。需要非致命快照时，构建 `lintel-crash` 的 `lintel-snapshot-helper`，交给 `--snapshot-helper PATH`。这两个选项适用于 `lintel bundle` 和 `lintel run`。macOS 将它们放入 `Contents/Helpers`，检查架构与依赖，并在启用签名时一同签名。应用在 `CrashReportsConfig` 的 `uploader` 和 `snapshot_helper` 字段填写实际运行时的绝对路径。两种助手都可以与 `--cef-crash-reports` 并用。同一个浏览器宿主的原生致命捕获与 CEF Crashpad 仍需二选一。
+
+macOS arm64 是非致命快照的首个平台。跨平台打包检查只验证助手文件与包结构。签名测试包的快照、进程退出后上传以及 CEF 和 worker 报告导入，需按平台分别验收。
 
 ## 平台边界
 

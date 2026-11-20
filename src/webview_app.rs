@@ -45,6 +45,8 @@ pub fn webview_app() -> WebviewApplication {
     cef_reports: None,
     #[cfg(feature = "crash-reporting")]
     crash: None,
+    #[cfg(feature = "crash-reports")]
+    reports: None,
     #[cfg(feature = "desktop")]
     desktop: false,
     #[cfg(feature = "desktop")]
@@ -89,6 +91,8 @@ pub struct WebviewApplication {
   cef_reports: Option<cef::CefCrashReports>,
   #[cfg(feature = "crash-reporting")]
   crash: Option<lintel_crash::CrashConfig>,
+  #[cfg(feature = "crash-reports")]
+  reports: Option<crate::crash_reports::CrashReportsConfig>,
   #[cfg(feature = "desktop")]
   desktop: bool,
   #[cfg(feature = "desktop")]
@@ -147,6 +151,13 @@ impl WebviewApplication {
   #[cfg(feature = "crash-reporting")]
   pub fn crash_reporting(mut self, config: lintel_crash::CrashConfig) -> Self {
     self.crash = Some(config);
+    self
+  }
+
+  /// Configures capture and the optional application crash report service.
+  #[cfg(feature = "crash-reports")]
+  pub fn crash_reports(mut self, config: crate::crash_reports::CrashReportsConfig) -> Self {
+    self.reports = Some(config);
     self
   }
 
@@ -336,6 +347,20 @@ impl WebviewApplication {
       lintel_lib_env::webview_test_url_override().is_none(),
       "clear the imported WebView test URL override to run a local WebView application"
     );
+    #[cfg(feature = "crash-reports")]
+    if let Some(config) = self.reports.as_mut() {
+      ensure!(
+        self.crash.is_none() && self.cef_reports.is_none(),
+        "choose the WebView capture backend in CrashReportsConfig"
+      );
+      match config.take_capture()? {
+        crate::crash_reports::FatalCapture::Off => {}
+        crate::crash_reports::FatalCapture::Native(capture) => self.crash = Some(capture),
+        crate::crash_reports::FatalCapture::Cef(directory) => {
+          self.cef_reports = Some(cef::CefCrashReports::new(directory));
+        }
+      }
+    }
     #[cfg(feature = "crash-reporting")]
     let native_reporter = self.crash.is_some();
     #[cfg(not(feature = "crash-reporting"))]
@@ -347,6 +372,10 @@ impl WebviewApplication {
       .map(|reports| reports.with_application_id(self.id.clone().unwrap_or_else(|| "lintel".into())));
     #[cfg(feature = "crash-reporting")]
     let _crash_reporter = self.crash.take().map(lintel_crash::CrashReporter::start).transpose()?;
+    #[cfg(feature = "crash-reports")]
+    if let Some(config) = self.reports.take() {
+      self.plugins.insert(0, crate::crash_reports::install(config, false)?);
+    }
     let commands = Arc::new(self.commands);
     let relaunch = crate::runtime::DeferredRelaunch::default();
     let deferred_relaunch = relaunch.clone();

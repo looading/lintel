@@ -97,6 +97,8 @@ pub struct MultiWindow<State, Message, Boot, Update, View> {
   activation: Option<Arc<dyn Fn(crate::runtime::ActivationEvent) -> Message + Send + Sync>>,
   #[cfg(feature = "crash-reporting")]
   crash: Option<lintel_crash::CrashConfig>,
+  #[cfg(feature = "crash-reports")]
+  reports: Option<crate::crash_reports::CrashReportsConfig>,
   #[cfg(feature = "desktop")]
   desktop: bool,
   #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -126,6 +128,8 @@ impl<State, Message, Boot, Update, View> MultiWindow<State, Message, Boot, Updat
       activation: None,
       #[cfg(feature = "crash-reporting")]
       crash: None,
+      #[cfg(feature = "crash-reports")]
+      reports: None,
       #[cfg(feature = "desktop")]
       desktop: false,
       #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -173,6 +177,13 @@ impl<State, Message, Boot, Update, View> MultiWindow<State, Message, Boot, Updat
   #[cfg(feature = "crash-reporting")]
   pub fn crash_reporting(mut self, config: lintel_crash::CrashConfig) -> Self {
     self.crash = Some(config);
+    self
+  }
+
+  /// Configures capture and the optional application crash report service.
+  #[cfg(feature = "crash-reports")]
+  pub fn crash_reports(mut self, config: crate::crash_reports::CrashReportsConfig) -> Self {
+    self.reports = Some(config);
     self
   }
 
@@ -272,6 +283,8 @@ impl<State, Message, Boot, Update, View> MultiWindow<State, Message, Boot, Updat
       activation,
       #[cfg(feature = "crash-reporting")]
       crash,
+      #[cfg(feature = "crash-reports")]
+      reports,
       #[cfg(feature = "desktop")]
       desktop,
       #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -295,6 +308,10 @@ impl<State, Message, Boot, Update, View> MultiWindow<State, Message, Boot, Updat
     #[cfg(feature = "crash-reporting")]
     if let Some(config) = crash {
       app = app.crash_reporting(config);
+    }
+    #[cfg(feature = "crash-reports")]
+    if let Some(config) = reports {
+      app = app.crash_reports(config);
     }
     let program_id = NativeWindows::<State, Message, Update, View>::id();
     if let Some(callback) = activation {

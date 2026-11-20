@@ -122,6 +122,8 @@ pub struct AppBuilder {
   activation_handler: Option<ActivationHandler>,
   #[cfg(feature = "crash-reporting")]
   crash: Option<lintel_crash::CrashConfig>,
+  #[cfg(feature = "crash-reports")]
+  reports: Option<crate::crash_reports::CrashReportsConfig>,
   #[cfg(feature = "desktop")]
   desktop_enabled: bool,
   #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -149,6 +151,8 @@ impl AppBuilder {
       activation_handler: None,
       #[cfg(feature = "crash-reporting")]
       crash: None,
+      #[cfg(feature = "crash-reports")]
+      reports: None,
       #[cfg(feature = "desktop")]
       desktop_enabled: false,
       #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -187,6 +191,13 @@ impl AppBuilder {
   #[cfg(feature = "crash-reporting")]
   pub fn crash_reporting(mut self, config: lintel_crash::CrashConfig) -> Self {
     self.crash = Some(config);
+    self
+  }
+
+  /// Configures capture and the optional application crash report service.
+  #[cfg(feature = "crash-reports")]
+  pub fn crash_reports(mut self, config: crate::crash_reports::CrashReportsConfig) -> Self {
+    self.reports = Some(config);
     self
   }
 
@@ -287,8 +298,24 @@ impl AppBuilder {
       },
     };
 
+    #[cfg(feature = "crash-reports")]
+    let (crash, reports) = crate::crash_reports::configure_native(self.crash, self.reports)?;
+    #[cfg(all(feature = "crash-reports", feature = "public-cef"))]
+    let snapshot_app_is_native = self.cef_pump.is_none();
+    #[cfg(all(feature = "crash-reports", not(feature = "public-cef")))]
+    let snapshot_app_is_native = true;
+    #[cfg(all(feature = "crash-reports", feature = "public-cef"))]
+    if reports.is_some() && !snapshot_app_is_native && crash.is_some() {
+      crate::cef::validate_crash_reports(None, true)?;
+    }
+    #[cfg(all(feature = "crash-reporting", not(feature = "crash-reports")))]
+    let crash = self.crash;
     #[cfg(feature = "crash-reporting")]
-    let _crash_reporter = self.crash.map(lintel_crash::CrashReporter::start).transpose()?;
+    let _crash_reporter = crash.map(lintel_crash::CrashReporter::start).transpose()?;
+    #[cfg(feature = "crash-reports")]
+    let reports_plugin = reports
+      .map(|config| crate::crash_reports::install(config, snapshot_app_is_native))
+      .transpose()?;
 
     let runtime = RuntimeOwner::new(Builder::new_multi_thread().enable_all().build()?);
     let _runtime = runtime.enter();
@@ -381,6 +408,8 @@ impl AppBuilder {
       .build_with_project_dirs(project_dir, Default::default());
 
     let mut plugins: Vec<PluginCreator> = vec![Box::new(move |context| lintel_plugin_iced::creator(context, tx))];
+    #[cfg(feature = "crash-reports")]
+    plugins.extend(reports_plugin);
     plugins.extend(self.plugins);
     let app_context = AppContextBuilder::new()
       .with_event_proxy(proxy)

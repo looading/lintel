@@ -90,6 +90,8 @@ pub fn validate_service_name(name: &str) -> Result<()> {
       "lintel-updater",
       "lintel-crash-helper",
       "lintel-worker-crash-helper",
+      "lintel-crash-uploader",
+      "lintel-snapshot-helper",
       "lintel-cef-helper",
       "cef-helper",
       "crashpad_handler"
@@ -253,6 +255,8 @@ mod tests {
       json!({"service_processes":[{"name":"one","bin":"Worker"},{"name":"two","bin":"worker"}]}),
       json!({"service_processes":[{"name":"lintel-updater","bin":"worker"}]}),
       json!({"service_processes":[{"name":"lintel-worker-crash-helper","bin":"worker"}]}),
+      json!({"service_processes":[{"name":"lintel-crash-uploader","bin":"worker"}]}),
+      json!({"service_processes":[{"name":"LINTEL-SNAPSHOT-HELPER","bin":"worker"}]}),
       json!({"service_processes":[{"name":"NUL","bin":"worker"}]}),
       json!({"service_processes":[{"name":"worker.exe","bin":"worker"}]}),
       json!({"service_processes":[{"name":"worker.name","bin":"worker"}]}),

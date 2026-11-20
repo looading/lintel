@@ -114,6 +114,15 @@
       ],
       "summary": "Reuse local native reporter with validated service correlation metadata; no arbitrary fields, endpoint capture or upload.",
       "status": "implemented"
+    },
+    {
+      "symbol": "lintel::crash_reports::CrashReports",
+      "path": "src/crash_reports.rs",
+      "required_features": [
+        "crash-reports"
+      ],
+      "summary": "Register CrashReportsConfig with .crash_reports(config) on application, multi_window, webview_app or AppBuilder. Use the AppContext service for snapshots, report queries and upload policy.",
+      "status": "implemented"
     }
   ],
   "features": [
@@ -193,6 +202,15 @@
       "validation_boundary": "Backend runtime configuration is exclusive; native helper and dump evidence is platform-specific."
     },
     {
+      "name": "crash-reports",
+      "summary": "Import completed native, CEF and explicit Mojo worker reports into a local queue. The application configures capture and authorizes uploads to a selected HTTPS receiver.",
+      "platforms": [
+        "macos"
+      ],
+      "status": "implemented",
+      "validation_boundary": "Manual snapshots are limited to macOS arm64 native hosts. Packaging fixtures validate helper images and signatures. Each backend and platform needs independent native acceptance."
+    },
+    {
       "name": "linux-desktop",
       "summary": "Explicit SNI tray, X11 and user-mediated portal shortcut backends.",
       "platforms": [
@@ -260,6 +278,10 @@
     {
       "path": "crates/lintel-process/",
       "summary": "Dedicated Mojo supervision thread, typed directory and worker lifecycle; no GUI dependency."
+    },
+    {
+      "path": "crates/lintel-crash-reports/",
+      "summary": "Completed report import, local queue and policy persistence, and an independent uploader process."
     }
   ],
   "templates": [
@@ -470,6 +492,18 @@
       "summary": "Package the dedicated lintel-worker-crash-helper role with existing native image and publication checks.",
       "effects": "write-artifacts",
       "validation_boundary": "Copies an explicitly selected trusted helper; does not install a reporter. Can coexist with CEF Crashpad in a different process; browser reporter conflict remains."
+    },
+    {
+      "command": "lintel bundle --crash-uploader PATH",
+      "summary": "Package the dedicated lintel-crash-uploader executable. Also accepted by lintel run.",
+      "effects": "write-artifacts",
+      "validation_boundary": "Verifies the explicitly selected helper as a native image and signs it when bundle signing is enabled. Upload policy and receiver come from the application."
+    },
+    {
+      "command": "lintel bundle --snapshot-helper PATH",
+      "summary": "Package the dedicated lintel-snapshot-helper executable. Also accepted by lintel run.",
+      "effects": "write-artifacts",
+      "validation_boundary": "Can coexist with CEF Crashpad. Native manual snapshots are limited to macOS arm64 hosts using the native snapshot path."
     }
   ],
   "verification": {

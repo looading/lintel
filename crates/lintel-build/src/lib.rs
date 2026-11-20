@@ -87,7 +87,7 @@ pub struct BundleHelper {
 pub struct BundleExtensions {
   pub helpers: Vec<BundleHelper>,
   pub protocol_schemes: Vec<String>,
-  /// CEF's own local-only Crashpad configuration; mutually exclusive with native crash helpers.
+  /// CEF's own local-only Crashpad configuration, mutually exclusive with native browser capture.
   pub cef_crash_reports: bool,
 }
 
@@ -401,7 +401,7 @@ pub fn bundle_macos_for_distribution_with_extensions(
       !helpers
         .iter()
         .any(|helper| helper.name.eq_ignore_ascii_case("lintel-crash-helper")),
-      "CEF Crashpad and native crash helpers are mutually exclusive"
+      "CEF Crashpad and native browser crash capture are mutually exclusive"
     );
   }
   validate_helpers(helpers)?;
@@ -604,12 +604,15 @@ mod distribution_tests {
       hardened_runtime: false,
       timestamp: false,
     };
-    let helpers = [BundleHelper {
-      name: "lintel-crash-helper".into(),
-      executable: executable.clone(),
-    }];
+    let roles = ["lintel-crash-helper", "lintel-crash-uploader", "lintel-snapshot-helper"];
     let extensions = BundleExtensions {
-      helpers: helpers.to_vec(),
+      helpers: roles
+        .into_iter()
+        .map(|name| BundleHelper {
+          name: name.into(),
+          executable: executable.clone(),
+        })
+        .collect(),
       protocol_schemes: vec!["Lintel-Fixture".into()],
       cef_crash_reports: false,
     };
@@ -630,15 +633,22 @@ mod distribution_tests {
     );
     let installed = bundle.join("Contents/Helpers/lintel-crash-helper");
     let original = fs::read(&installed).unwrap();
-    assert!(
-      crate::signing_components::components(&bundle)
-        .unwrap()
-        .iter()
-        .any(
-          |component| component.kind == crate::signing_components::ComponentKind::Executable
-            && component.path.ends_with("Helpers/lintel-crash-helper")
-        )
-    );
+    let components = crate::signing_components::components(&bundle).unwrap();
+    for role in roles {
+      let helper = bundle.join("Contents/Helpers").join(role);
+      assert!(components.iter().any(|component| {
+        component.kind == crate::signing_components::ComponentKind::Executable
+          && component.path.ends_with(std::path::Path::new("Helpers").join(role))
+      }));
+      assert!(
+        Command::new("/usr/bin/codesign")
+          .args(["--verify", "--strict"])
+          .arg(helper)
+          .status()
+          .unwrap()
+          .success()
+      );
+    }
     verify_signature(&bundle).unwrap();
 
     let linked = root.path().join("linked-helper");
@@ -650,7 +660,7 @@ mod distribution_tests {
         None,
         None,
         &[BundleHelper {
-          name: "lintel-crash-helper".into(),
+          name: "lintel-crash-uploader".into(),
           executable: linked
         }]
       )
@@ -676,7 +686,7 @@ mod distribution_tests {
         None,
         None,
         &[BundleHelper {
-          name: "lintel-crash-helper".into(),
+          name: "lintel-snapshot-helper".into(),
           executable: invalid
         }]
       )

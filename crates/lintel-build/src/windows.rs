@@ -1699,15 +1699,18 @@ pub(crate) mod tests {
     pe(&options.executable, Architecture::X64, false, &[]);
     let helper = root.path().join("source/helper.exe");
     pe(&helper, Architecture::X64, false, &["kernel32.dll"]);
-    let helpers = [BundleHelper {
-      name: "lintel-crash-helper".into(),
+    let roles = ["lintel-crash-helper", "lintel-crash-uploader", "lintel-snapshot-helper"];
+    let helpers = roles.map(|name| BundleHelper {
+      name: name.into(),
       executable: helper.clone(),
-    }];
+    });
     let bundle = bundle_windows_with_helpers(&options, "x86_64-pc-windows-msvc", &[], &helpers).unwrap();
-    let installed = fs::read(bundle.join("lintel-crash-helper.exe")).unwrap();
+    let installed = roles.map(|name| fs::read(bundle.join(format!("{name}.exe"))).unwrap());
     pe(&helper, Architecture::Arm64, false, &[]);
     assert!(bundle_windows_with_helpers(&options, "x86_64-pc-windows-msvc", &[], &helpers).is_err());
-    assert_eq!(fs::read(bundle.join("lintel-crash-helper.exe")).unwrap(), installed);
+    for (name, original) in roles.into_iter().zip(installed) {
+      assert_eq!(fs::read(bundle.join(format!("{name}.exe"))).unwrap(), original);
+    }
     let collision = [BundleHelper {
       name: "fixture".into(),
       executable: options.executable.clone(),

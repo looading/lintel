@@ -15,6 +15,7 @@
 - Contextual native startup: `application_with_context` / `multi_window_with_context`, fallible initialization after services start.
 - Web UI: `lintel::webview_app`, embedded pages and typed/async commands.
 - Optional agent tools: feature `agent`; provider-neutral tool catalog, explicit grants, typed handlers, bounded progress and scoped cancellation.
+- Optional crash reports: feature `crash-reports` and `.crash_reports(config)` register `lintel::crash_reports::CrashReports` for local reports, snapshots and upload policy. See [Crash reports](docs/capabilities.md#崩溃报告插件) and [the example](examples/crash_reports.rs).
 - [Context initialization](docs/context-initialization.md)
 - [Application agent tools](docs/agent-tools.md)
 - [Native service API](crates/lintel-desktop/README.md)
@@ -23,6 +24,7 @@
 ## Tooling and delivery
 - `lintel describe --json` emits the embedded schema-versioned project catalog. It does not probe the machine, build, download or execute application content.
 - `lintel new` creates a portable consumer project with its own agent entry notes.
+- `lintel bundle` and `lintel run` accept explicit `--crash-uploader PATH` and `--snapshot-helper PATH` executable inputs.
 - [CLI discovery contract](docs/cli-describe.md)
 - [Windows portable bundles](docs/windows-bundles.md)
 - [Signed offline distribution](docs/windows-distribution.md)

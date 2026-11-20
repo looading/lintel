@@ -78,6 +78,8 @@ pub struct Application<Initialize, Update, View, Subscribe = NoSubscription> {
   activation: Option<Arc<dyn Fn(&AppContext, ProgramId, crate::runtime::ActivationEvent) + Send + Sync>>,
   #[cfg(feature = "crash-reporting")]
   crash: Option<lintel_crash::CrashConfig>,
+  #[cfg(feature = "crash-reports")]
+  reports: Option<crate::crash_reports::CrashReportsConfig>,
   #[cfg(feature = "desktop")]
   desktop: bool,
   #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -127,6 +129,8 @@ impl<Initialize, Update, View> Application<Initialize, Update, View> {
       activation: None,
       #[cfg(feature = "crash-reporting")]
       crash: None,
+      #[cfg(feature = "crash-reports")]
+      reports: None,
       #[cfg(feature = "desktop")]
       desktop: false,
       #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -176,6 +180,13 @@ impl<Initialize, Update, View, Subscribe> Application<Initialize, Update, View, 
   #[cfg(feature = "crash-reporting")]
   pub fn crash_reporting(mut self, config: lintel_crash::CrashConfig) -> Self {
     self.crash = Some(config);
+    self
+  }
+
+  /// Configures capture and the optional application crash report service.
+  #[cfg(feature = "crash-reports")]
+  pub fn crash_reports(mut self, config: crate::crash_reports::CrashReportsConfig) -> Self {
+    self.reports = Some(config);
     self
   }
 
@@ -275,6 +286,8 @@ impl<Initialize, Update, View, Subscribe> Application<Initialize, Update, View, 
       activation: self.activation,
       #[cfg(feature = "crash-reporting")]
       crash: self.crash,
+      #[cfg(feature = "crash-reports")]
+      reports: self.reports,
       #[cfg(feature = "desktop")]
       desktop: self.desktop,
       #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -311,6 +324,8 @@ impl<Initialize, Update, View, Subscribe> Application<Initialize, Update, View, 
       activation,
       #[cfg(feature = "crash-reporting")]
       crash,
+      #[cfg(feature = "crash-reports")]
+      reports,
       #[cfg(feature = "desktop")]
       desktop,
       #[cfg(all(feature = "desktop", feature = "public-iced"))]
@@ -333,6 +348,10 @@ impl<Initialize, Update, View, Subscribe> Application<Initialize, Update, View, 
     #[cfg(feature = "crash-reporting")]
     if let Some(config) = crash {
       app = app.crash_reporting(config);
+    }
+    #[cfg(feature = "crash-reports")]
+    if let Some(config) = reports {
+      app = app.crash_reports(config);
     }
     let program_id = NativeWindow::<State, Message, Update, View, Subscribe>::id();
     if let Some(callback) = activation {

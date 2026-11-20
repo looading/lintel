@@ -46,6 +46,9 @@ pub mod permissions;
 #[cfg(feature = "crash-reporting")]
 pub use lintel_crash as crash;
 
+#[cfg(feature = "crash-reports")]
+pub mod crash_reports;
+
 /// 业务启动消息与程序创建共用渲染 FIFO，避免 EventLoopProxy 和订阅通道之间的竞态。
 pub(crate) fn dispatch_program_message(
   context: &core::context::AppContext,

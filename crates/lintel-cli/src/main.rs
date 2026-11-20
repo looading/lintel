@@ -508,6 +508,14 @@ struct BundleSettings {
   #[arg(long, value_name = "PATH")]
   worker_crash_helper: Option<PathBuf>,
 
+  /// Copy the standalone crash report uploader before dependency verification and signing.
+  #[arg(long, value_name = "PATH")]
+  crash_uploader: Option<PathBuf>,
+
+  /// Copy the one-shot crash report snapshot helper before dependency verification and signing.
+  #[arg(long, value_name = "PATH")]
+  snapshot_helper: Option<PathBuf>,
+
   /// Declare URL schemes in bundle metadata; Windows HKCU registration is an explicit install step.
   #[arg(long = "protocol-scheme", value_name = "SCHEME", value_parser = parse_protocol_scheme)]
   protocol_schemes: Vec<String>,
@@ -536,24 +544,27 @@ impl BundleSettings {
   }
 
   fn standalone_helpers(&self) -> Result<Vec<BundleHelper>> {
-    let executable = match &self.crash_helper {
+    let native = match &self.crash_helper {
       Some(path) => Some(path.clone()),
       None => installed_crash_helper(self.crash_reporter)?,
     };
-    let mut helpers: Vec<_> = executable
-      .into_iter()
-      .map(|executable| BundleHelper {
-        name: "lintel-crash-helper".to_owned(),
-        executable,
-      })
-      .collect();
-    if let Some(executable) = &self.worker_crash_helper {
-      helpers.push(BundleHelper {
-        name: "lintel-worker-crash-helper".to_owned(),
-        executable: executable.clone(),
-      });
-    }
-    Ok(helpers)
+    let roles = [
+      ("lintel-crash-helper", native),
+      ("lintel-worker-crash-helper", self.worker_crash_helper.clone()),
+      ("lintel-crash-uploader", self.crash_uploader.clone()),
+      ("lintel-snapshot-helper", self.snapshot_helper.clone()),
+    ];
+    Ok(
+      roles
+        .into_iter()
+        .filter_map(|(name, executable)| {
+          executable.map(|executable| BundleHelper {
+            name: name.to_owned(),
+            executable,
+          })
+        })
+        .collect(),
+    )
   }
 
   fn signing_options(&self) -> Result<Option<SignOptions>> {
@@ -1278,6 +1289,51 @@ mod signature_tests {
   }
 
   #[test]
+  fn crash_reports_helpers_have_explicit_paths_and_coexist_with_cef_crashpad() {
+    for command in ["bundle", "run"] {
+      let cli = Cli::try_parse_from([
+        "lintel",
+        command,
+        "--cef-crash-reports",
+        "--worker-crash-helper",
+        "helpers/worker",
+        "--crash-uploader",
+        "helpers/crash uploader",
+        "--snapshot-helper",
+        "helpers/snapshot",
+      ])
+      .unwrap();
+      let bundle = match cli.command {
+        Command::Bundle(args) => args.bundle,
+        Command::Run(args) => args.bundle,
+        _ => panic!("expected bundle or run"),
+      };
+      let extensions = bundle.bundle_extensions().unwrap();
+      assert!(extensions.cef_crash_reports);
+      let helpers: Vec<_> = extensions
+        .helpers
+        .iter()
+        .map(|helper| (helper.name.as_str(), helper.executable.as_path()))
+        .collect();
+      assert_eq!(
+        helpers,
+        [
+          ("lintel-worker-crash-helper", Path::new("helpers/worker")),
+          ("lintel-crash-uploader", Path::new("helpers/crash uploader")),
+          ("lintel-snapshot-helper", Path::new("helpers/snapshot")),
+        ]
+      );
+    }
+    for flag in ["--crash-uploader", "--snapshot-helper"] {
+      assert!(Cli::try_parse_from(["lintel", "bundle", flag]).is_err());
+      assert!(Cli::try_parse_from(["lintel", "bundle", "--crash-reporter", flag, "helper"]).is_ok());
+    }
+    for role in ["lintel-crash-uploader", "LINTEL-SNAPSHOT-HELPER"] {
+      assert!(processes::parse_service(&format!("{role}=worker")).is_err());
+    }
+  }
+
+  #[test]
   fn protocol_schemes_are_repeatable_normalized_and_windows_bundle_declarations_do_not_register() {
     let cli = Cli::try_parse_from([
       "lintel",
@@ -1315,7 +1371,7 @@ mod signature_tests {
   }
 
   #[test]
-  fn cef_crash_config_is_explicit_and_mutually_exclusive_with_native_helpers() {
+  fn cef_crash_config_is_explicit_and_mutually_exclusive_with_native_browser_capture() {
     let cli = Cli::try_parse_from(["lintel", "bundle", "--cef-crash-reports"]).unwrap();
     let Command::Bundle(args) = cli.command else {
       panic!("expected bundle");

@@ -2,6 +2,7 @@
   "schema_version": 1,
   "crates": [
     "lintel-crash",
+    "lintel-crash-reports",
     "lintel-desktop",
     "lintel-desktop/native-platform",
     "lintel-updater",
@@ -70,6 +71,7 @@
     "examples/agent_tools.rs",
     "examples/ai_native_app.rs",
     "examples/diagnostic_export.rs",
+    "examples/crash_reports.rs",
     "examples/activation.rs",
     "docs/runtime.md",
     "docs/capabilities.md",

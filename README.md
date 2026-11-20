@@ -6,7 +6,7 @@ Lintel 是一个基于 Rust、winit、iced 和 CEF 的桌面应用框架，提�
 
 项目提供独立的运行时、窗口路由、插件管理和 CEF WebView 实现。自有 crate 使用 `lintel-` 前缀，Rust 内部引用使用 `lintel_`。
 
-基础能力的公共接口、插件接入和平台范围见[基础能力说明](docs/capabilities.md)。多窗口使用 `multi_window` 与 `WindowManager`，混合应用可在同一个 CEF 运行时配置多个本地页面。`desktop`、`services`、`sqlite`、`updater`、`crash-reporting` 和 `multiprocess` 都是按需 feature。
+基础能力的公共接口、插件接入和平台范围见[基础能力说明](docs/capabilities.md)。多窗口使用 `multi_window` 与 `WindowManager`，混合应用可在同一个 CEF 运行时配置多个本地页面。`desktop`、`services`、`sqlite`、`updater`、`crash-reporting`、`crash-reports` 和 `multiprocess` 都是按需 feature。
 
 ## crates.io 包名
 
@@ -155,6 +155,21 @@ lintel run --cef-path /trusted/cef143 --mojo-runtime /trusted/mojo/libmojo_rs_na
 `services` 下的 `store`、`network` 和 `diagnostics` 通过 `.plugin(...)` 装配。`sqlite` 增加 SQLite 服务，`FileAccess` 提供目录能力约束的文件读写。示例见 [services.rs](examples/services.rs)。需要原生崩溃报告时，启用 `crash-reporting` 并使用 `.crash_reporting(CrashConfig)`，打包时用 `--crash-reporter` 带入独立助手。报告默认只保存在本地。
 
 混合应用可选择 `.cef_crash_reports(absolute_directory)` 和 `lintel bundle --cef-crash-reports --sign -`，由 CEF 自带 Crashpad 捕获浏览器及沙箱子进程报告；该模式与原生 reporter 互斥，配置不包含上传地址。诊断包可显式导出这两类本地 dump，见 [diagnostic_export.rs](examples/diagnostic_export.rs)。通知、屏幕录制、输入监听和 Accessibility 的平台支持、当前状态与显式申请入口见 [desktop 包说明](crates/lintel-desktop/README.md)。
+
+## 崩溃报告插件
+
+需要查询报告、抓取当前应用的非致命快照或提交上传时，启用 `crash-reports`，在应用 builder 上调用 `.crash_reports(config)`。配置类型 `CrashReportsConfig` 和服务 `CrashReports` 都位于 `lintel::crash_reports`。应用从 `AppContext` 取得服务，在异步任务中按报告 ID 查询状态或提交上传。报告可以来自原生宿主、CEF 或应用指定的 Mojo worker 目录。见 [接入与平台范围](docs/capabilities.md#崩溃报告插件) 和 [crash_reports.rs](examples/crash_reports.rs)。
+
+致命捕获在启动时配置。默认上传策略是 `ManualOnly`，配置 HTTPS 接收端后才可提交。使用 `lintel bundle` 或 `lintel run` 时，按需用 `--crash-uploader PATH` 指定上传进程，用 `--snapshot-helper PATH` 指定一次性快照助手。原生与 CEF 的致命捕获继续使用各自的打包选项。
+
+在 macOS arm64 的源码 checkout 中，可打开示例窗口生成本地快照。
+
+```bash
+cargo build --manifest-path crates/lintel-crash/Cargo.toml --locked --bin lintel-snapshot-helper
+data_dir="$(mktemp -d)"
+cargo run --locked --features crash-reports --example crash_reports -- "$data_dir" \
+  --snapshot-helper "$PWD/crates/lintel-crash/target/debug/lintel-snapshot-helper"
+```
 
 ## 原生无障碍与 Linux
 
