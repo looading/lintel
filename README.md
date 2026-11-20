@@ -10,11 +10,11 @@ Lintel 是一个基于 Rust、winit、iced 和 CEF 的桌面应用框架，提�
 
 ## crates.io 包名
 
-框架的注册表包名为 `lintel-framework`，Rust 库和业务代码中的接入名为 `lintel`。首次发布仍在进行，主包需等待依赖链发布完成后才能从 crates.io 安装；当前可按下文从源码使用。发布完成后的依赖声明为：
+框架的注册表包名为 `lintel-framework`，Rust 库和业务代码中的接入名为 `lintel`：
 
 ```toml
 [dependencies]
-lintel = { package = "lintel-framework", version = "0.1.0" }
+lintel = { package = "lintel-framework", version = "0.1" }
 ```
 
 发布状态、补丁依赖与版本顺序见 [发布说明](docs/publishing.md)。独立能力包可以按需使用，不要求应用启用全部功能。

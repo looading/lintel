@@ -3991,7 +3991,7 @@ checksum = "d4a5ff6bcca6c4867b1c4fd4ef63e4db7436ef363e0ad7531d1558856bae64f4"
 
 [[package]]
 name = "lintel-build"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -4113,7 +4113,7 @@ dependencies = [
 
 [[package]]
 name = "lintel-framework"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "cap-std",
@@ -4348,7 +4348,7 @@ dependencies = [
 
 [[package]]
 name = "lintel-updater"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64",

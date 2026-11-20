@@ -3,7 +3,7 @@
   "kind": "lintel.framework",
   "framework": {
     "name": "Lintel",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "repository_root": ".",
     "summary": "Rust desktop framework with a small public facade, pinned public renderer, optional services and application-owned tools.",
     "registry_package": "lintel-framework",

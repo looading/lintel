@@ -1,6 +1,6 @@
 [package]
 name = "lintel-framework"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 publish = ["crates-io"]
 description = "A modular Rust desktop framework with native UI, WebView, plugins and supervised services"
@@ -94,7 +94,7 @@ sha2 = { workspace = true, optional = true }
 cap-std = { version = "4.0.3", optional = true }
 lintel-desktop = { version = "0.1.0", path = "crates/lintel-desktop", features = ["native"], optional = true }
 lintel-crash = { version = "0.1.0", path = "crates/lintel-crash", optional = true }
-lintel-updater = { version = "0.1.0", path = "crates/lintel-updater", optional = true }
+lintel-updater = { version = "0.1.1", path = "crates/lintel-updater", optional = true }
 rusqlite = { version = "0.42.0", features = ["bundled", "hooks"], optional = true }
 lintel-process = { version = "0.1.0", path = "crates/lintel-process", default-features = false, optional = true }
 

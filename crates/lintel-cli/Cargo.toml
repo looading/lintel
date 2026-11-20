@@ -22,7 +22,7 @@ anyhow = "1"
 clap = { version = "4.5.57", features = ["derive"] }
 lintel-build = { version = "0.1.1", path = "../lintel-build", features = ["portable"] }
 lintel-crash = { version = "0.1.0", path = "../lintel-crash" }
-lintel-updater = { version = "0.1.0", path = "../lintel-updater" }
+lintel-updater = { version = "0.1.1", path = "../lintel-updater" }
 serde_json = "1"
 
 [workspace]

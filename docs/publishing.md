@@ -13,7 +13,7 @@ lintel = { package = "lintel-framework", version = "0.1" }
 
 The full release graph currently has 50 packages: 21 framework/tool packages, 18 Iced components, 7 WGPU components, Winit, AccessKit's Winit adapter, the CEF wrapper, and Cryoglyph. Excluding `lintel-cli` produces the 49-package framework graph.
 
-Forks use `lintel-` followed by the original package name with underscores replaced by hyphens. The script preserves the original Rust dependency keys and library target names. For example, `iced_core` becomes a dependency on package `lintel-iced-core`, while Rust code still refers to `iced_core`. Framework packages keep their existing package names. Fork versions retain their upstream versions; first-party versions are copied from their source manifests. The generator patch is `lintel-build 0.1.1`, while the primary framework and CLI remain `0.1.0`.
+Forks use `lintel-` followed by the original package name with underscores replaced by hyphens. The script preserves the original Rust dependency keys and library target names. For example, `iced_core` becomes a dependency on package `lintel-iced-core`, while Rust code still refers to `iced_core`. Framework packages keep their existing package names. Fork versions retain their upstream versions; first-party versions are copied from their source manifests. The compatible SDK patch set uses `lintel-framework`, `lintel-build`, and `lintel-updater` at `0.1.1`; the CLI is `0.1.0`.
 
 The stager flattens workspace package metadata, dependencies, additive features, and lints. Local dependencies point to adjacent staged packages and also declare exact registry versions. Git selectors and development `[patch]` tables are removed. An explicit registry override replaces a verified equivalent dependency with its exact official version. Unknown Git/path dependencies fail before output is published; they are not silently converted to a guessed registry version.
 
@@ -186,29 +186,20 @@ The release operator then runs Cargo from the stage, not from the development ch
 Use local patches only for pre-publication checks. After prerequisites are registered, verify the final package against the actual registry graph before publishing it. Publish functional prerequisites in the plan order, wait for each required version to become resolvable, and publish `lintel-framework` after its complete dependency closure. Publish the CLI after its generator archive and dependency versions are ready. Credentials and publishing commands remain the release operator's responsibility; the staging script never reads or sends them.
 
 
-## First release status — 2026-11-19 13:46 UTC
+## The 0.1 SDK version set
 
-The repository source is committed on `main`. The first registry release is incomplete because crates.io is rate-limiting creation of new packages. The server accepted another package at 13:44 UTC and returned a new HTTP 429 deadline of **2026-11-19 13:54:48 UTC** for the next new package. Do not treat the staged framework as an already published version.
+The first release contains 50 named packages. Its SDK patch set is:
 
-The following versions have been published:
-
-| Package | Version |
+| Component | Version |
 | --- | --- |
-| `lintel-build` | `0.1.0` |
-| `lintel-crash` | `0.1.0` |
-| `lintel-lib-event` | `0.1.0` |
-| `lintel-lib-env` | `0.1.0` |
-| `lintel-lib-crypto` | `0.1.0` |
-| `lintel-lib-jsb-macro` | `0.1.0` |
-| `lintel-lib-config` | `0.1.0` |
-| `lintel-lib-store` | `0.1.0` |
-| `lintel-iced-core` | `0.15.0-dev` |
-| `lintel-winit` | `0.30.13` |
-| `lintel-accesskit-winit` | `0.34.0` |
+| `lintel-framework` | `0.1.1` |
+| `lintel-build` | `0.1.1` |
+| `lintel-updater` | `0.1.1` |
+| `lintel-cli` | `0.1.0` |
 
-The complete graph is 49 framework packages, or 50 including the CLI. `lintel-framework 0.1.0` and `lintel-cli 0.1.0` are still pending. Local checks of staged or extracted packages use explicit local patches until the remaining versions are available. They validate packaging and type compatibility; they do not replace a clean installation from crates.io.
+Keep these SDK dependencies together when regenerating the registry stage. The earlier `lintel-updater 0.1.0` declares an exact dependency on `lintel-build 0.1.0`; combining it with the generator fix at `0.1.1` causes Cargo resolution to fail. The updater patch and framework patch move that dependency to the verified generator version without changing update runtime behavior.
 
-Resume from the recorded publication order after the registry deadline or after an account rate-limit increase. Confirm each already published version in the registry, skip it, and continue with the first missing prerequisite. Keep source archives, SDKs, credentials and local receipts outside the repository. Regenerate package archives against the actual registry graph before each upload. No release tag has been created while the main package is pending.
+Check the actual registry graph with a separate consumer that has no local paths or patches. A successful staged compilation is not equivalent to a registry installation. Per-package Cargo verification, actual registry availability, CLI installation and generated-project checks are separate release evidence.
 
 
 The generator rejects the application name `lintel-framework` before opening a checkout or archive. Using it would otherwise create two different path packages with the same name and version in the generated lockfile. This validation is shipped in `lintel-build 0.1.1`; the CLI requires that patch or newer within the compatible `0.1` series.
