@@ -203,3 +203,14 @@ Check the actual registry graph with a separate consumer that has no local paths
 
 
 The generator rejects the application name `lintel-framework` before opening a checkout or archive. Using it would otherwise create two different path packages with the same name and version in the generated lockfile. This validation is shipped in `lintel-build 0.1.1`; the CLI requires that patch or newer within the compatible `0.1` series.
+
+
+## Release acceptance — 2026-11-20
+
+All 50 named packages in this release graph are registered and their selected versions have been confirmed in the crates.io sparse index. The current framework, build SDK and updater SDK are `0.1.1`; the CLI is `0.1.0`.
+
+An independent consumer resolves `lintel-framework =0.1.1` without Rust path, Git or patch dependencies. Native, WebView and contextual agent applications compile through the public facade; the multiwindow fixture compiles with its explicit standard logging, timing and error-reporting support dependencies. The selected SDK features include CEF, desktop services, crash reporting, multiprocess, signed updates, agent tools and SQLite.
+
+`cargo +stable install lintel-cli --version =0.1.0 --locked` was verified in its default optimized profile, installing `lintel`, `lintel-crash-helper`, `lintel-launcher` and `lintel-updater`. The installed CLI reports the framework catalog at `0.1.1`, creates a standalone native project, and rejects the reserved framework package name before writing a destination.
+
+The implementation checks include the 105 passing build-package tests (one ignored), 30 CLI tests, 34 process tests and three macro hygiene regressions. The packed Windows facade passed an API-only CEF target check; the Linux facade passed its target check with the real target ALSA/sysroot. These target checks do not represent native Windows/Linux desktop execution, SDK linking or sandbox acceptance. Source, packed-artifact, registry-consumer and native-execution results remain separate evidence.

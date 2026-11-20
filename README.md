@@ -49,12 +49,14 @@ lintel describe --json
 
 ## 安装命令行
 
-从 Lintel 根目录安装 Rust 二进制。Cargo 包名是 `lintel-cli`，安装后的命令是 `lintel`。
+从 crates.io 安装 CLI。Cargo 包名是 `lintel-cli`，安装后的命令是 `lintel`，同时提供构建产物使用的 launcher、updater 和 crash helper。
 
 ```bash
-cargo +stable install --path crates/lintel-cli --locked
+cargo install lintel-cli --version 0.1.0 --locked
 lintel --help
 ```
+
+需要在框架 checkout 中开发 CLI 时，可在仓库根目录运行 `cargo +stable install --path crates/lintel-cli --locked`。
 
 CLI 使用独立的 Cargo 锁文件。从源码安装时会把原生模板、混合模板以及公开依赖配置下的框架源码装入 Rust 二进制。安装后的 `lintel new` 可直接从空目录运行，生成应用通过项目内的 `.lintel/framework` 相对路径使用随包源码。应用继续使用框架锁定的 Rust 工具链，并从公开 Git 仓库和 crates.io 解析第三方依赖。需要用某个本地 checkout 开发框架时，可显式传 `lintel new --lintel-path /path/to/lintel`。
 
